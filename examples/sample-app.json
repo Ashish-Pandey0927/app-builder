@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "Fitness App",
+    "packageName": "com.example.fitness",
+    "icon": ""
+  },
+  "theme": {
+    "primaryColor": "#FF6337",
+    "secondaryColor": "#FFA323",
+    "backgroundColor": "#FFFFFF",
+    "textColor": "#000000",
+    "mode": "light"
+  },
+  "screens": [
+    {
+      "id": "home",
+      "name": "Home",
+      "layout": "vertical",
+      "components": [
+        {
+          "id": "t1",
+          "type": "Text",
+          "props": {
+            "text": "Welcome",
+            "fontSize": 20,
+            "fontWeight": "bold"
+          },
+          "style": {
+            "margin": 12
+          }
+        },
+        {
+          "id": "b1",
+          "type": "Button",
+          "props": {
+            "label": "Go to Profile",
+            "action": {
+              "type": "navigate",
+              "targetScreenId": "profile"
+            }
+          },
+          "style": {
+            "backgroundColor": "#FF6337",
+            "textColor": "#FFFFFF"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "string",
+    "packageName": "string",
+    "icon": "string"
+  },
+  "theme": {
+    "primaryColor": "#hex",
+    "secondaryColor": "#hex",
+    "backgroundColor": "#hex",
+    "textColor": "#hex",
+    "mode": "light"
+  },
+  "screens": [
+    {
+      "id": "string",
+      "name": "string",
+      "layout": "vertical",
+      "components": []
+    }
+  ]
+}

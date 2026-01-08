@@ -1,0 +1,20 @@
+CRITICAL FORMAT RULES:
+- Every component MUST have:
+  id, type, props, style
+- NEVER use keys: content, label (outside props), action (outside props)
+- Button action MUST be an object:
+  { "type": "navigate", "targetScreenId": "string" }
+- List items MUST be under props.items
+- Spacer height MUST be props.height
+- If unsure, use empty objects
+
+IMPORTANT RULES (STRICT):
+- You MUST use ONLY these component types:
+ Text, Image, Button, List, Spacer
+-Do NOT invent new components
+-Do NOT include chat, payments, messaging, auth, APIs, or data sources
+-If the user asks for unsupported features:
+ -Replace them with Text explaining the limitations
+ -Offer navigation or alert buttons Only
+-Output ONLY valid JSON matching the schema
+-No explanations, no comments, no markdown
