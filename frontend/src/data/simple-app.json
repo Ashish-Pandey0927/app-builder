@@ -45,6 +45,40 @@
           }
         }
       ]
+    },
+    {
+      "id": "profile",
+      "name": "Profile",
+      "layout": "vertical",
+      "components": [
+        {
+          "id": "t2",
+          "type": "Text",
+          "props": {
+            "text": "Welcome",
+            "fontSize": 20,
+            "fontWeight": "bold"
+          },
+          "style": {
+            "margin": 12
+          }
+        },
+        {
+          "id": "b1",
+          "type": "Button",
+          "props": {
+            "label": "Go to Home",
+            "action": {
+              "type": "navigate",
+              "targetScreenId": "home"
+            }
+          },
+          "style": {
+            "backgroundColor": "#FF6337",
+            "textColor": "#FFFFFF"
+          }
+        }
+      ]
     }
   ]
 }
