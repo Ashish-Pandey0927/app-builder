@@ -8,6 +8,7 @@ function AppRenderer({
   onSelectComponent,
   onReorderComponent,
   onMoveIntoContainer,
+  mode,
 }) {
   if (!schema || !Array.isArray(schema.screens)) {
     return <p>Invalid app schema</p>;
@@ -19,6 +20,9 @@ function AppRenderer({
   const [draggedId, setDraggedId] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [hoverPosition, setHoverPosition] = useState(null);
+  const isBuilder = mode === "builder";
+  const isPreview = mode === "preview";
+  const isPublish = mode === "publish";
 
   function renderComponent(component, parentId = null) {
     const { id, type, props = {} } = component;
@@ -26,24 +30,23 @@ function AppRenderer({
     const isDraggable = type !== "Container";
 
     const wrapperStyle = {
-      border:
-        hoveredId === id
-          ? hoverPosition === "before"
-            ? "2px solid #4caf50"
-            : "2px solid #2196f3"
-          : isSelected
-          ? "2px solid #6200ee"
-          : "1px dashed #ccc",
+      border: isBuilder ? "1px dashed #ccc" : "none",
       padding: 6,
       margin: "6px 0",
-      cursor: isDraggable ? "grab" : "default",
-      background:
-        hoveredId === id ? "#fff3e0" : isSelected ? "#ede7ff" : "transparent",
+      cursor: isBuilder ? "grab" : "default",
+      background: isBuilder
+        ? hoveredId === id
+          ? "#fff3e0"
+          : isSelected
+          ? "#ede7ff"
+          : "transparent"
+        : "transparent",
+
       position: "relative",
-      opacity: draggedId === id ? 0.5 : 1,
     };
 
     function handleSelect(e) {
+      if (!isBuilder) return;
       e.stopPropagation();
       onSelectComponent(id);
     }
@@ -107,7 +110,9 @@ function AppRenderer({
               e.preventDefault();
               e.stopPropagation();
 
-              const data = JSON.parse(e.dataTransfer.getData("draggedComponent"));
+              const data = JSON.parse(
+                e.dataTransfer.getData("draggedComponent")
+              );
               if (data.fromContainerId === id) return;
 
               onMoveIntoContainer(data.id, id);
@@ -132,9 +137,9 @@ function AppRenderer({
         key={id}
         style={wrapperStyle}
         onClick={handleSelect}
-        draggable={isDraggable}
+        draggable={isBuilder && isDraggable}
         onDragStart={(e) => {
-          if (!isDraggable) return;
+          if (!isBuilder || !isDraggable) return;
 
           setDraggedId(id);
           e.dataTransfer.setData(
@@ -148,6 +153,7 @@ function AppRenderer({
           setHoveredId(null);
         }}
         onDragOver={(e) => {
+          if (!isBuilder) return;
           e.preventDefault();
           e.stopPropagation();
 
@@ -157,6 +163,7 @@ function AppRenderer({
           setHoverPosition(offsetY < rect.height / 2 ? "before" : "after");
         }}
         onDrop={(e) => {
+          if (!isBuilder) return;
           e.preventDefault();
           e.stopPropagation();
 
@@ -184,8 +191,12 @@ function AppRenderer({
         background: "#fafafa",
         border: "2px dashed #ddd",
       }}
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={(e) => {
+        if (!isBuilder) return;
+        e.preventDefault()
+      }}
       onDrop={(e) => {
+        if (!isBuilder) return;
         e.preventDefault();
         const data = JSON.parse(e.dataTransfer.getData("draggedComponent"));
         onMoveIntoContainer(data.id, null);
