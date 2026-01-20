@@ -6,16 +6,27 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
   if (!screen) return <p>Screen not found</p>;
 
   function renderComponent(component) {
-    const { id, type, props = {}, children = [] } = component;
+    const {
+      id,
+      type,
+      props = {},
+      style = {},
+      children = [],
+    } = component;
 
     switch (type) {
       case "Text":
-        return <p key={id}>{props.text}</p>;
+        return (
+          <p key={id} style={style}>
+            {props.text}
+          </p>
+        );
 
       case "Button":
         return (
           <button
             key={id}
+            style={style}
             onClick={() => {
               if (props.action?.type === "navigate") {
                 onNavigate(props.action.targetScreenId);
@@ -27,11 +38,22 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
         );
 
       case "Image":
-        return <img key={id} src={props.src} alt="" style={{ width: "100%" }} />;
+        return (
+          <img
+            key={id}
+            src={props.src}
+            alt={props.alt || ""}
+            style={{
+              width: "100%",
+              display: "block",
+              ...style,
+            }}
+          />
+        );
 
       case "List":
         return (
-          <ul key={id}>
+          <ul key={id} style={style}>
             {props.items?.map((i, idx) => (
               <li key={idx}>{i}</li>
             ))}
@@ -39,16 +61,25 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
         );
 
       case "Spacer":
-        return <div key={id} style={{ height: props.height }} />;
+        return (
+          <div
+            key={id}
+            style={{
+              height: props.height,
+              ...style,
+            }}
+          />
+        );
 
       case "Container":
         return (
           <div
             key={id}
             style={{
-              border: "1px solid #ccc",
               padding: 10,
               margin: "8px 0",
+              boxSizing: "border-box",
+              ...style, // user styling overrides default
             }}
           >
             {children.map(renderComponent)}
@@ -61,7 +92,14 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div
+      style={{
+        padding: 20,
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        background: "#ffffff",
+      }}
+    >
       <h2>{screen.name}</h2>
       {screen.components.map(renderComponent)}
     </div>

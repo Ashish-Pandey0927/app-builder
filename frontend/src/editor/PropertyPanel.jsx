@@ -1,5 +1,12 @@
 import { useEffect, useRef } from "react";
 
+const shadows = {
+  none: "none",
+  soft: "0 2px 6px rgba(0,0,0,.15)",
+  medium: "0 4px 12px rgba(0,0,0,.25)",
+  strong: "0 8px 24px rgba(0,0,0,.35)",
+};
+
 function PropertyPanel({
   selectedComponent,
   onUpdateComponent,
@@ -23,13 +30,23 @@ function PropertyPanel({
     );
   }
 
-  const { id, type, props } = selectedComponent;
+  const { id, type, props = {}, style = {} } = selectedComponent;
 
   function updateProp(key, value) {
     onUpdateComponent({
       ...selectedComponent,
       props: {
         ...props,
+        [key]: value,
+      },
+    });
+  }
+
+  function updateStyle(key, value) {
+    onUpdateComponent({
+      ...selectedComponent,
+      style: {
+        ...style,
         [key]: value,
       },
     });
@@ -125,7 +142,7 @@ function PropertyPanel({
         );
 
       default:
-        return <div style={{ color: "#777" }}>No editable properties</div>;
+        return null;
     }
   }
 
@@ -139,7 +156,7 @@ function PropertyPanel({
         fontFamily: "sans-serif",
       }}
     >
-      {/* COMPONENT META */}
+      {/* COMPONENT INFO */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
           Component
@@ -151,55 +168,169 @@ function PropertyPanel({
         <div style={{ fontSize: 12 }}>{type}</div>
       </div>
 
-      {/* PROPERTIES */}
+      {/* CONTENT */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
           Properties
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {renderFields()}
-        </div>
+        {renderFields()}
       </div>
 
-      {/* ORDER CONTROLS */}
+      {/* LAYOUT */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Order
+          Layout
         </div>
 
-        <button
-          onClick={() => onMoveComponent(id, "up")}
-          disabled={componentIndex === 0}
-          style={{
-            width: "100%",
-            padding: 6,
-            background: "#2a2a2a",
-            color: "#fff",
-            border: "1px solid #333",
-            borderRadius: 4,
-            marginBottom: 6,
-            opacity: componentIndex === 0 ? 0.4 : 1,
-          }}
-        >
-          Move Up
-        </button>
+        <div style={labelStyle}>Width</div>
+        <input
+          style={inputStyle}
+          value={style.width || ""}
+          onChange={(e) => updateStyle("width", e.target.value)}
+        />
 
-        <button
-          onClick={() => onMoveComponent(id, "down")}
-          disabled={componentIndex === totalComponents - 1}
-          style={{
-            width: "100%",
-            padding: 6,
-            background: "#2a2a2a",
-            color: "#fff",
-            border: "1px solid #333",
-            borderRadius: 4,
-            opacity: componentIndex === totalComponents - 1 ? 0.4 : 1,
-          }}
+        <div style={labelStyle}>Height</div>
+        <input
+          style={inputStyle}
+          value={style.height || ""}
+          onChange={(e) => updateStyle("height", e.target.value)}
+        />
+
+        <div style={labelStyle}>Align</div>
+        <select
+          style={inputStyle}
+          value={style.textAlign || "left"}
+          onChange={(e) => updateStyle("textAlign", e.target.value)}
         >
-          Move Down
-        </button>
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
       </div>
+
+      {/* SPACING */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Spacing
+        </div>
+
+        <div style={labelStyle}>Padding</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.padding || 0}
+          onChange={(e) => updateStyle("padding", Number(e.target.value))}
+        />
+
+        <div style={labelStyle}>Margin</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.margin || 0}
+          onChange={(e) => updateStyle("margin", Number(e.target.value))}
+        />
+      </div>
+
+      {/* COLORS */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Colors
+        </div>
+
+        <div style={labelStyle}>Background</div>
+        <input
+          type="color"
+          value={style.backgroundColor || "#ffffff"}
+          onChange={(e) => updateStyle("backgroundColor", e.target.value)}
+        />
+
+        <div style={labelStyle}>Text</div>
+        <input
+          type="color"
+          value={style.color || "#000000"}
+          onChange={(e) => updateStyle("color", e.target.value)}
+        />
+      </div>
+
+      {/* BORDER */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Border
+        </div>
+
+        <div style={labelStyle}>Radius</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.borderRadius || 0}
+          onChange={(e) => updateStyle("borderRadius", Number(e.target.value))}
+        />
+
+        <div style={labelStyle}>Width</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.borderWidth || 0}
+          onChange={(e) => updateStyle("borderWidth", Number(e.target.value))}
+        />
+
+        <div style={labelStyle}>Color</div>
+        <input
+          type="color"
+          value={style.borderColor || "#000000"}
+          onChange={(e) => updateStyle("borderColor", e.target.value)}
+        />
+      </div>
+
+      {/* SHADOW */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Shadow
+        </div>
+
+        <select
+          style={inputStyle}
+          value={
+            Object.keys(shadows).find((k) => shadows[k] === style.boxShadow) ||
+            "none"
+          }
+          onChange={(e) => updateStyle("boxShadow", shadows[e.target.value])}
+        >
+          <option value="none">None</option>
+          <option value="soft">Soft</option>
+          <option value="medium">Medium</option>
+          <option value="strong">Strong</option>
+        </select>
+      </div>
+
+      {/* TYPOGRAPHY */}
+      {(type === "Text" || type === "Button") && (
+        <div style={sectionStyle}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+            Typography
+          </div>
+
+          <div style={labelStyle}>Font Size</div>
+          <input
+            type="number"
+            style={inputStyle}
+            value={style.fontSize || 14}
+            onChange={(e) => updateStyle("fontSize", Number(e.target.value))}
+          />
+
+          <div style={labelStyle}>Font Weight</div>
+          <select
+            style={inputStyle}
+            value={style.fontWeight || "400"}
+            onChange={(e) => updateStyle("fontWeight", e.target.value)}
+          >
+            <option value="400">Regular</option>
+            <option value="500">Medium</option>
+            <option value="600">Semi Bold</option>
+            <option value="700">Bold</option>
+          </select>
+        </div>
+      )}
 
       {/* ACTIONS */}
       <div style={sectionStyle}>

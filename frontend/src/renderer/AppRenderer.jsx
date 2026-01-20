@@ -45,7 +45,7 @@ function AppRenderer({
   }, []);
 
   function renderComponent(component, parentId = null) {
-    const { id, type, props = {} } = component;
+    const { id, type, props = {}, style={} } = component;
     const isSelected = id === selectedComponentId;
     const isDraggable = type !== "Container";
 
@@ -83,11 +83,12 @@ function AppRenderer({
 
     switch (type) {
       case "Text":
-        content = <p style={{ margin: 0 }}>{props.text}</p>;
+        content = <p style={{ margin: 0, ...style }}>{props.text}</p>;
         break;
       case "Button":
         content = (
-          <button
+          <button 
+            style={style}
             onClick={(e) => {
               e.stopPropagation();
               if (props.action?.type === "navigate") {
@@ -100,11 +101,11 @@ function AppRenderer({
         );
         break;
       case "Image":
-        content = <img src={props.src} alt="" style={{ width: "100%" }} />;
+        content = <img src={props.src} alt="" style={{ width: "100%", ...style }} />;
         break;
       case "List":
         content = (
-          <ul>
+          <ul style={style}>
             {props.items?.map((i, idx) => (
               <li key={idx}>{i}</li>
             ))}
@@ -112,7 +113,7 @@ function AppRenderer({
         );
         break;
       case "Spacer":
-        content = <div style={{ height: props.height }} />;
+        content = <div style={{ height: props.height, ...style }} />;
         break;
 
       case "Container":
@@ -123,6 +124,7 @@ function AppRenderer({
               padding: 10,
               background: "rgba(98,0,238,0.03)",
               minHeight: 40,
+              ...style
             }}
             onDragOver={(e) => {
               const data = e.dataTransfer.getData("draggedComponent");

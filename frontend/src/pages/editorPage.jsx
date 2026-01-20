@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import appSchema from "../data/simple-app.json";
 import AppRenderer from "../renderer/AppRenderer";
 import PropertyPanel from "../editor/PropertyPanel";
@@ -678,7 +678,8 @@ body {
     };
 
     // 3. Service Worker
-    zip.file("sw.js",
+    zip.file(
+      "sw.js",
       `
 self.addEventListener("install", e => {
   e.waitUntil(
@@ -742,6 +743,46 @@ self.addEventListener("fetch", e => {
   const [mode, setMode] = useState("builder");
   // builder | preview | publish
   const [zoom, setZoom] = useState(1);
+  const [canvasZoom, setCanvasZoom] = useState(1);
+  const [canvasPos, setCanvasPos] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStart = useRef({ x: 0, y: 0 });
+
+  function onMouseDown(e) {
+    if (e.button !== 1 && !e.spaceKey) return; // middle mouse or space+drag
+    setIsPanning(true);
+    panStart.current = {
+      x: e.clientX - canvasPos.x,
+      y: e.clientY - canvasPos.y,
+    };
+  }
+
+  function onMouseMove(e) {
+    if (!isPanning) return;
+    setCanvasPos({
+      x: e.clientX - panStart.current.x,
+      y: e.clientY - panStart.current.y,
+    });
+  }
+
+  function onMouseUp() {
+    setIsPanning(false);
+  }
+
+  useEffect(() => {
+    function handleWheel(e) {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+
+      setCanvasZoom((z) => {
+        const next = z - e.deltaY * 0.001;
+        return Math.min(3, Math.max(0.3, next));
+      });
+    }
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, []);
 
   return (
     <>
@@ -947,54 +988,74 @@ self.addEventListener("fetch", e => {
         <div
           style={{
             flex: 1,
-            overflow: "auto",
+            overflow: "hidden",
             display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
+            position: "relative",
+            cursor: isPanning ? "grabbing" : "default",
+            userSelect: isPanning ? "none" : "auto",
             ...style.canvasGrid,
           }}
           onClick={() => setSelectedComponentId(null)}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
         >
+          {/* Camera */}
           <div
             style={{
-              background: "#111",
-              borderRadius: 24,
-              boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
-              padding: 12,
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: `
+                translate(${canvasPos.x}px, ${canvasPos.y}px)
+                translate(-50%, -50%)
+                scale(${canvasZoom})
+             `,
+              transformOrigin: "center center",
+              transition: isPanning
+                ? "none"
+                : "transform 0.08s cubic-bezier(.22,.61,.36,1)",
+              zIndex: 2,
             }}
           >
             <div
               style={{
-                width: 360,
-                background: "#fff",
-                borderRadius: 16,
-                overflow: "hidden",
+                background: "#111",
+                borderRadius: 24,
+                boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+                padding: 12,
               }}
             >
               <div
                 style={{
-                  transform: `scale(${zoom})`,
-                  transformOrigin: "top center",
+                  width: 360,
+                  background: "#fff",
+                  borderRadius: 16,
+                  overflow: "visible",
+                  position: "relative",
                 }}
               >
-                {mode === "publish" ? (
-                  <PublishedRenderer
-                    schema={schema}
-                    screenId={currentScreenId}
-                    onNavigate={setCurrentScreenId}
-                  />
-                ) : (
-                  <AppRenderer
-                    schema={schema}
-                    currentScreenId={currentScreenId}
-                    onNavigate={setCurrentScreenId}
-                    selectedComponentId={selectedComponentId}
-                    onSelectComponent={setSelectedComponentId}
-                    onReorderComponent={reorderComponent}
-                    onMoveIntoContainer={moveComponentIntoContainer}
-                    mode={mode}
-                  />
-                )}
+                <div style={{}}>
+                  {mode === "publish" ? (
+                    <PublishedRenderer
+                      schema={schema}
+                      screenId={currentScreenId}
+                      onNavigate={setCurrentScreenId}
+                    />
+                  ) : (
+                    <AppRenderer
+                      schema={schema}
+                      currentScreenId={currentScreenId}
+                      onNavigate={setCurrentScreenId}
+                      selectedComponentId={selectedComponentId}
+                      onSelectComponent={setSelectedComponentId}
+                      onReorderComponent={reorderComponent}
+                      onMoveIntoContainer={moveComponentIntoContainer}
+                      mode={mode}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>
