@@ -4,6 +4,8 @@ import AppRenderer from "../renderer/AppRenderer";
 import PropertyPanel from "../editor/PropertyPanel";
 import ComponentTree from "../editor/ComponentTree";
 import PublishedRenderer from "../renderer/PublishedRenderer";
+import { style } from "../style/style";
+import JSZip from "jszip";
 
 const editorPage = ({ initialSchema }) => {
   const [schema, setSchema] = useState(initialSchema);
@@ -16,6 +18,7 @@ const editorPage = ({ initialSchema }) => {
 
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
+  const screens = schema.screens;
 
   //   const [currentScreenId, setCurrentScreenId] = useState(() => {
   //     const saved = localStorage.getItem("app_schema");
@@ -26,10 +29,15 @@ const editorPage = ({ initialSchema }) => {
   //     return appSchema.screens[0].id;
   //   });
   const [currentScreenId, setCurrentScreenId] = useState(
-    initialSchema.screens[0].id
+    initialSchema.screens[0].id,
   );
+  const currentScreen = schema.screens.find((s) => s.id === currentScreenId);
+  const [leftTab, setLeftTab] = useState("layers");
 
   const [selectedComponentId, setSelectedComponentId] = useState(null);
+  const selectedComponent = currentScreen
+    ? findComponentById(currentScreen.components, selectedComponentId)
+    : null;
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -528,9 +536,6 @@ const editorPage = ({ initialSchema }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedComponentId, history, future, schema]);
 
-  const screens = schema.screens;
-  const currentScreen = schema.screens.find((s) => s.id === currentScreenId);
-
   function findComponentById(components, id) {
     for (let comp of components) {
       if (comp.id === id) return comp;
@@ -543,51 +548,61 @@ const editorPage = ({ initialSchema }) => {
     return null;
   }
 
-  function exportSchema() {
-    const blob = new Blob([JSON.stringify(schema, null, 2)], {
-      type: "application/json",
-    });
+  async function exportPublishHTML() {
+    const zip = new JSZip();
+    // Load icons from local public folder instead of internet
+    const icon192 = await fetch("/icons/icon-192.png").then((r) => r.blob());
+    const icon512 = await fetch("/icons/icon-512.png").then((r) => r.blob());
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "app-schema.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+    const iconsFolder = zip.folder("icons");
+    iconsFolder.file("icon-192.png", icon192);
+    iconsFolder.file("icon-512.png", icon512);
 
-  function exportPublishHTML() {
+    // 1. HTML
     const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <title>Published App</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#6200ee" />
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js");
+      });
+    }
+  </script>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #fafafa;
-      display: flex;
-      justify-content: center;
-    }
-    #app {
-      width: 360px;
-      padding: 20px;
-    }
-    button {
-      padding: 10px;
-      margin: 6px 0;
-      background: #6200ee;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+    html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+  background: #ffffff;
+}
+
+body {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #ffffff;
+  overflow-y: auto;
+}
+    button { padding:10px; margin:6px 0; background:#6200ee; color:white; border:none; border-radius:4px; }
   </style>
 </head>
 <body>
   <div id="app"></div>
-
   <script>
     const schema = ${JSON.stringify(schema, null, 2)};
     let currentScreenId = schema.screens[0].id;
@@ -595,46 +610,35 @@ const editorPage = ({ initialSchema }) => {
     function render() {
       const root = document.getElementById("app");
       root.innerHTML = "";
-
       const screen = schema.screens.find(s => s.id === currentScreenId);
       if (!screen) return;
-
-      screen.components.forEach(component => {
-        renderComponent(component, root);
-      });
+      screen.components.forEach(c => renderComponent(c, root));
     }
 
     function renderComponent(component, parent) {
       let el;
-
       switch (component.type) {
         case "Text":
           el = document.createElement("p");
           el.textContent = component.props.text;
           break;
-
         case "Button":
           el = document.createElement("button");
           el.textContent = component.props.label;
           el.onclick = () => {
-            if (component.props.action.type === "navigate") {
-              currentScreenId = component.props.action.targetScreenId;
-              render();
-            }
+            currentScreenId = component.props.action.targetScreenId;
+            render();
           };
           break;
-
         case "Image":
           el = document.createElement("img");
           el.src = component.props.src;
           el.style.width = "100%";
           break;
-
         case "Spacer":
           el = document.createElement("div");
           el.style.height = component.props.height + "px";
           break;
-
         case "List":
           el = document.createElement("ul");
           component.props.items.forEach(i => {
@@ -643,20 +647,13 @@ const editorPage = ({ initialSchema }) => {
             el.appendChild(li);
           });
           break;
-
         case "Container":
           el = document.createElement("div");
           el.style.border = "1px dashed #aaa";
           el.style.padding = "10px";
-          component.children.forEach(child =>
-            renderComponent(child, el)
-          );
+          component.children.forEach(child => renderComponent(child, el));
           break;
-
-        default:
-          return;
       }
-
       parent.appendChild(el);
     }
 
@@ -666,12 +663,51 @@ const editorPage = ({ initialSchema }) => {
 </html>
 `;
 
-    const blob = new Blob([html], { type: "text/html" });
+    // 2. manifest.json
+    const manifest = {
+      name: "My AI App",
+      short_name: "AI App",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#6200ee",
+      icons: [
+        { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      ],
+    };
+
+    // 3. Service Worker
+    zip.file("sw.js",
+      `
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open("cache").then(cache =>
+      cache.addAll(["./published-app.html", "./manifest.json"])
+    )
+  );
+});
+
+self.addEventListener("fetch", e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+});
+`,
+    );
+
+    // Add files to zip
+    zip.file("index.html", html);
+    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+    // zip.file("sw.js", sw);
+
+    // Placeholder icons (replace with real images later)
+    const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
+
     const a = document.createElement("a");
     a.href = url;
-    a.download = "published-app.html";
+    a.download = "published-app.zip";
     a.click();
+    URL.revokeObjectURL(url);
   }
 
   function importSchema(file) {
@@ -696,12 +732,8 @@ const editorPage = ({ initialSchema }) => {
     }
   }
 
-  const selectedComponent = currentScreen
-    ? findComponentById(currentScreen.components, selectedComponentId)
-    : null;
-
   const componentIndex = currentScreen?.components.findIndex(
-    (c) => c.id === selectedComponentId
+    (c) => c.id === selectedComponentId,
   );
 
   const totalComponents = currentScreen?.components.length;
@@ -709,111 +741,262 @@ const editorPage = ({ initialSchema }) => {
   // const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [mode, setMode] = useState("builder");
   // builder | preview | publish
+  const [zoom, setZoom] = useState(1);
 
   return (
     <>
       <div
         style={{
+          height: 48,
+          background: "#1e1e1e",
+          borderBottom: "1px solid #2a2a2a",
           display: "flex",
-          height: "calc(100vh - 50px)",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 16px",
+          color: "#ddd",
+          fontSize: 13,
+        }}
+      >
+        <div style={{ fontWeight: 600 }}>AI App Builder</div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            style={style.toolButton(mode === "builder")}
+            onClick={() => setMode("builder")}
+          >
+            Design
+          </button>
+          <button
+            style={style.toolButton(mode === "preview")}
+            onClick={() => setMode("preview")}
+          >
+            Preview
+          </button>
+          <button
+            style={style.toolButton(mode === "publish")}
+            onClick={() => setMode("publish")}
+          >
+            Publish
+          </button>
+
+          {mode === "publish" && (
+            <button
+              onClick={exportPublishHTML}
+              style={{
+                background: style.colors.primary,
+                color: "#fff",
+                border: "none",
+                padding: "6px 12px",
+                borderRadius: 6,
+                cursor: "pointer",
+              }}
+            >
+              Export HTML
+            </button>
+          )}
+
+          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}>
+            −
+          </button>
+          <span style={{ fontSize: 12 }}>{Math.round(zoom * 100)}%</span>
+          <button onClick={() => setZoom((z) => Math.min(2, z + 0.1))}>
+            +
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          height: "calc(100vh - 48px)",
+          background: style.colors.bgDark,
+          color: style.colors.textLight,
           overflow: "hidden",
           fontFamily: "sans-serif",
         }}
       >
         {/* Screen Switcher */}
+        {/* Unified Left Panel (Figma style) */}
         <div
           style={{
-            width: 180,
-            borderRight: "1px solid #ddd",
-            padding: 12,
-            background: "#f5f5f5",
-            overflowY: "auto",
+            width: 260,
+            background: style.colors.panelDark,
+            borderRight: `1px solid ${style.colors.border}`,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
-          <input
-            type="file"
-            accept=".json"
-            onChange={(e) => importSchema(e.target.files[0])}
-          />
-
-          <button
-            onClick={resetProject}
-            style={{ background: "#ff4d4d", color: "#fff" }}
+          {/* Tabs */}
+          <div
+            style={{
+              display: "flex",
+              borderBottom: `1px solid ${style.colors.border}`,
+            }}
           >
-            Reset Project
-          </button>
-
-          <h4>Screens</h4>
-          {screens.map((screen) => (
-            <div
-              key={screen.id}
-              onClick={() => {
-                setCurrentScreenId(screen.id);
-                setSelectedComponentId(null);
-              }}
+            <button
+              onClick={() => setLeftTab("screens")}
               style={{
-                padding: "8px 12px",
-                marginBottom: 8,
-                cursor: "pointer",
-                background:
-                  currentScreenId === screen.id ? "#6200ee" : "transparent",
-                color: currentScreenId === screen.id ? "#fff" : "#000",
+                flex: 1,
+                ...style.toolButton(leftTab === "screens"),
+                borderRadius: 0,
               }}
             >
-              {screen.name}
-            </div>
-          ))}
-        </div>
+              Screens
+            </button>
+            <button
+              onClick={() => setLeftTab("layers")}
+              style={{
+                flex: 1,
+                ...style.toolButton(leftTab === "layers"),
+                borderRadius: 0,
+              }}
+            >
+              Layers
+            </button>
+          </div>
 
-        {/* Component Tree */}
-        <div
-          style={{
-            width: 220,
-            borderRight: "1px solid #ddd",
-            padding: 8,
-            overflowY: "auto",
-            background: "#fafafa",
-          }}
-        >
-          <h4>Components</h4>
-          <ComponentTree
-            components={currentScreen.components}
-            selectedId={selectedComponentId}
-            onSelect={setSelectedComponentId}
-          />
+          {/* Content */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
+              padding: 10,
+            }}
+          >
+            {leftTab === "screens" && (
+              <>
+                <div style={{ marginBottom: 10 }}>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => importSchema(e.target.files[0])}
+                  />
+                </div>
+
+                <button
+                  onClick={resetProject}
+                  style={{
+                    width: "100%",
+                    marginBottom: 10,
+                    background: "#ff4d4d",
+                    color: "#fff",
+                    border: "none",
+                    padding: "6px",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                  }}
+                >
+                  Reset Project
+                </button>
+
+                {screens.map((screen) => (
+                  <div
+                    key={screen.id}
+                    onClick={() => {
+                      setCurrentScreenId(screen.id);
+                      setSelectedComponentId(null);
+                      setLeftTab("layers");
+                    }}
+                    style={{
+                      padding: "8px 10px",
+                      marginBottom: 6,
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      background:
+                        currentScreenId === screen.id
+                          ? style.colors.primary
+                          : "transparent",
+                      color: "#fff",
+                      fontSize: 13,
+                      overflowX: "hidden",
+                      // scrollBehavior: "smooth"
+                    }}
+                  >
+                    📱 {screen.name}
+                  </div>
+                ))}
+              </>
+            )}
+
+            {leftTab === "layers" && (
+              <>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: style.colors.textMuted,
+                    marginBottom: 6,
+                  }}
+                >
+                  Layers – {currentScreen.name}
+                </div>
+
+                <ComponentTree
+                  components={currentScreen.components}
+                  selectedId={selectedComponentId}
+                  onSelect={setSelectedComponentId}
+                />
+              </>
+            )}
+          </div>
         </div>
 
         {/* App Preview  */}
         <div
           style={{
             flex: 1,
-            padding: 20,
-            background: "fafafa",
-            overflowY: "auto",
+            overflow: "auto",
             display: "flex",
             justifyContent: "center",
+            alignItems: "center",
+            ...style.canvasGrid,
           }}
           onClick={() => setSelectedComponentId(null)}
         >
-          <div style={{ width: 360 }}>
-            {mode === "publish" ? (
-              <PublishedRenderer
-                schema={schema}
-                screenId={currentScreenId}
-                onNavigate={setCurrentScreenId}
-              />
-            ) : (
-              <AppRenderer
-                schema={schema}
-                currentScreenId={currentScreenId}
-                onNavigate={setCurrentScreenId}
-                selectedComponentId={selectedComponentId}
-                onSelectComponent={setSelectedComponentId}
-                onReorderComponent={reorderComponent}
-                onMoveIntoContainer={moveComponentIntoContainer}
-                mode={mode}
-              />
-            )}
+          <div
+            style={{
+              background: "#111",
+              borderRadius: 24,
+              boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+              padding: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 360,
+                background: "#fff",
+                borderRadius: 16,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "top center",
+                }}
+              >
+                {mode === "publish" ? (
+                  <PublishedRenderer
+                    schema={schema}
+                    screenId={currentScreenId}
+                    onNavigate={setCurrentScreenId}
+                  />
+                ) : (
+                  <AppRenderer
+                    schema={schema}
+                    currentScreenId={currentScreenId}
+                    onNavigate={setCurrentScreenId}
+                    selectedComponentId={selectedComponentId}
+                    onSelectComponent={setSelectedComponentId}
+                    onReorderComponent={reorderComponent}
+                    onMoveIntoContainer={moveComponentIntoContainer}
+                    mode={mode}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -823,9 +1006,9 @@ const editorPage = ({ initialSchema }) => {
           <div
             style={{
               width: 300,
-              borderLeft: "1px solid #ddd",
+              borderLeft: `1px solid ${style.colors.border}`,
               padding: 12,
-              background: "#fafafa",
+              background: style.colors.panelDark,
               overflowY: "auto",
             }}
           >
@@ -886,7 +1069,7 @@ const editorPage = ({ initialSchema }) => {
                     >
                       + {type}
                     </button>
-                  )
+                  ),
                 )}
               </div>
             </div>
@@ -935,45 +1118,6 @@ const editorPage = ({ initialSchema }) => {
             />
           </div>
         )}
-
-        {/* <h3>Renderer Test</h3> */}
-        {/* <pre>{JSON.stringify(appSchema, null, 2)}</pre> */}
-      </div>
-      <div
-        style={{
-          width: "100%",
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          background: "#1e1e1e",
-          padding: "10px",
-          display: "flex",
-          justifyContent: "center",
-          gap: "12px",
-          zIndex: 9999,
-          borderTop: "1px solid #333",
-        }}
-      >
-        {mode === "publish" && (
-          <button
-            onClick={exportPublishHTML}
-            style={{
-              padding: "8px 16px",
-              background: "#6200ee",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}
-          >
-            Export Published HTML
-          </button>
-        )}
-
-        <button onClick={() => setMode("builder")}>Builder</button>
-        <button onClick={() => setMode("preview")}>Preview</button>
-        <button onClick={() => setMode("publish")}>Publish</button>
       </div>
     </>
   );

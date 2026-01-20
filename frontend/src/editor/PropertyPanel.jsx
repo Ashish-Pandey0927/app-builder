@@ -16,7 +16,11 @@ function PropertyPanel({
   }, [selectedComponent]);
 
   if (!selectedComponent) {
-    return <p>No component selected</p>;
+    return (
+      <div style={{ color: "#777", fontSize: 13, padding: 12 }}>
+        Select a component to edit its properties.
+      </div>
+    );
   }
 
   const { id, type, props } = selectedComponent;
@@ -31,30 +35,51 @@ function PropertyPanel({
     });
   }
 
+  const sectionStyle = {
+    background: "#1e1e1e",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
+  };
+
+  const labelStyle = {
+    fontSize: 11,
+    color: "#aaa",
+    marginBottom: 4,
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "6px 8px",
+    background: "#2a2a2a",
+    color: "#fff",
+    border: "1px solid #333",
+    borderRadius: 4,
+    fontSize: 12,
+  };
+
   function renderFields() {
     switch (type) {
       case "Text":
         return (
-          <div>
-            <label style={{ fontSize: 12, color: "#555" }}>Text</label>
+          <>
+            <div style={labelStyle}>Text</div>
             <input
-              type="text"
+              style={inputStyle}
               value={props.text || ""}
               onChange={(e) => updateProp("text", e.target.value)}
-              style={{ width: "100%", padding: 6 }}
             />
-          </div>
+          </>
         );
 
       case "Button":
         return (
           <>
-            <label style={{ fontSize: 12, color: "#555" }}>Label</label>
+            <div style={labelStyle}>Label</div>
             <input
-              type="text"
+              style={inputStyle}
               value={props.label || ""}
               onChange={(e) => updateProp("label", e.target.value)}
-              style={{ width: "100%", padding: 6 }}
             />
           </>
         );
@@ -62,12 +87,11 @@ function PropertyPanel({
       case "Image":
         return (
           <>
-            <label style={{ fontSize: 12, color: "#555" }}>Image Source</label>
+            <div style={labelStyle}>Image URL</div>
             <input
-              type="text"
+              style={inputStyle}
               value={props.src || ""}
               onChange={(e) => updateProp("src", e.target.value)}
-              style={{ width: "100%", padding: 6 }}
             />
           </>
         );
@@ -75,12 +99,12 @@ function PropertyPanel({
       case "Spacer":
         return (
           <>
-            <label style={{ fontSize: 12, color: "#555" }}>Height (px)</label>
+            <div style={labelStyle}>Height (px)</div>
             <input
               type="number"
+              style={inputStyle}
               value={props.height || 0}
               onChange={(e) => updateProp("height", Number(e.target.value))}
-              style={{ width: "100%", padding: 6 }}
             />
           </>
         );
@@ -88,139 +112,126 @@ function PropertyPanel({
       case "List":
         return (
           <>
-            <label style={{ fontSize: 12, color: "#555" }}>
-              Items (one per line)
-            </label>
+            <div style={labelStyle}>Items (one per line)</div>
             <textarea
               rows={5}
+              style={{ ...inputStyle, resize: "vertical" }}
               value={(props.items || []).join("\n")}
               onChange={(e) =>
                 updateProp("items", e.target.value.split("\n").filter(Boolean))
               }
-              style={{ width: "100%", padding: 6 }}
             />
           </>
         );
 
       default:
-        return <p>No editable fields for this type</p>;
+        return <div style={{ color: "#777" }}>No editable properties</div>;
     }
   }
-  // const isNested = componentIndex === -1;
 
   return (
-    <div ref={panelRef} style={{ overflowY: "auto", height: "100%" }}>
-      <div style={{ fontSize: 14 }}>
-        {/* Component Info Section  */}
-        <div
-          style={{
-            borderBottom: "1px solid #ddd",
-            paddingBottom: 10,
-            marginBottom: 12,
-          }}
-        >
-          <h4 style={{ margin: "0 0 6px 0" }}>Component Info</h4>
-          <p>
-            <strong>ID:</strong> {id}
-          </p>
-          <p>
-            <strong>Type:</strong> {type}
-          </p>
+    <div
+      ref={panelRef}
+      style={{
+        height: "100%",
+        overflowY: "auto",
+        padding: 12,
+        fontFamily: "sans-serif",
+      }}
+    >
+      {/* COMPONENT META */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+          Component
         </div>
+        <div style={{ fontSize: 11, color: "#aaa" }}>ID</div>
+        <div style={{ fontSize: 12 }}>{id}</div>
 
-        {/* Editable Fields Section  */}
-        <div>
-          <h4 style={{ margin: "0 0 8px 0" }}>Properties</h4>
+        <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>Type</div>
+        <div style={{ fontSize: 12 }}>{type}</div>
+      </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              borderBottom: "1px solid #ddd",
-              paddingBottom: 10,
-              marginBottom: 12,
-            }}
-          >
-            {renderFields()}
-          </div>
+      {/* PROPERTIES */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Properties
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {renderFields()}
         </div>
       </div>
-      {/* Duplicate Button  */}
-      <div style={{ marginTop: 10 }}>
+
+      {/* ORDER CONTROLS */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Order
+        </div>
+
+        <button
+          onClick={() => onMoveComponent(id, "up")}
+          disabled={componentIndex === 0}
+          style={{
+            width: "100%",
+            padding: 6,
+            background: "#2a2a2a",
+            color: "#fff",
+            border: "1px solid #333",
+            borderRadius: 4,
+            marginBottom: 6,
+            opacity: componentIndex === 0 ? 0.4 : 1,
+          }}
+        >
+          Move Up
+        </button>
+
+        <button
+          onClick={() => onMoveComponent(id, "down")}
+          disabled={componentIndex === totalComponents - 1}
+          style={{
+            width: "100%",
+            padding: 6,
+            background: "#2a2a2a",
+            color: "#fff",
+            border: "1px solid #333",
+            borderRadius: 4,
+            opacity: componentIndex === totalComponents - 1 ? 0.4 : 1,
+          }}
+        >
+          Move Down
+        </button>
+      </div>
+
+      {/* ACTIONS */}
+      <div style={sectionStyle}>
         <button
           onClick={() => onDuplicateComponent(id)}
           style={{
             width: "100%",
-            padding: "8px",
+            padding: 8,
             background: "#6200ee",
             color: "#fff",
             border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
+            borderRadius: 6,
+            marginBottom: 10,
+            fontWeight: 600,
           }}
         >
-          Duplicate Component
+          Duplicate
         </button>
-      </div>
 
-      {/* Move Up/Down Buttons  */}
-      {/* {!isNested && (
-        <> */}
-          <div style={{ marginTop: 12 }}>
-            <button
-              onClick={() => onMoveComponent(id, "up")}
-              disabled={componentIndex === 0}
-              style={{
-                width: "100%",
-                padding: "6px",
-                marginBottom: 6,
-                background: componentIndex === 0 ? "#f0f0f0" : "#ddd",
-                border: "none",
-                cursor: componentIndex === 0 ? "not-allowed" : "pointer",
-                opacity: componentIndex === 0 ? 0.5 : 1,
-              }}
-            >
-              ↑ Move Up
-            </button>
-
-            <button
-              onClick={() => onMoveComponent(id, "down")}
-              disabled={componentIndex === totalComponents - 1}
-              style={{
-                width: "100%",
-                padding: "6px",
-                background:
-                  componentIndex === totalComponents - 1 ? "#f0f0f0" : "#ddd",
-                border: "none",
-                cursor:
-                  componentIndex === totalComponents - 1
-                    ? "not-allowed"
-                    : "pointer",
-                opacity: componentIndex === totalComponents - 1 ? 0.5 : 1,
-              }}
-            >
-              ↓ Move Down
-            </button>
-          </div>
-        {/* </>
-      )} */}
-
-      {/* Delete Button  */}
-      <div style={{ marginTop: 20 }}>
         <button
           onClick={() => onDeleteComponent(id)}
           style={{
             width: "100%",
-            padding: "8px",
+            padding: 8,
             background: "#ff4d4d",
             color: "#fff",
             border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
+            borderRadius: 6,
+            fontWeight: 600,
           }}
         >
-          Delete Component
+          Delete
         </button>
       </div>
     </div>

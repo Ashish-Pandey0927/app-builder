@@ -3,7 +3,7 @@
  * NOTE: For production, move the API key to a backend environment variable.
  */
 export async function generateFromPrompt(prompt) {
-  const API_KEY = "AIzaSyDwp-d3em87SQZwAj1QsB4B2RSLvGZEQUU"; // Best practice: Use import.meta.env.VITE_GEMINI_API_KEY
+  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY; // Best practice: Use import.meta.env.VITE_GEMINI_API_KEY
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
   const res = await fetch(API_URL, {
