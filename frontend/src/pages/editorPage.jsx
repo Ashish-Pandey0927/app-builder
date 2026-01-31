@@ -4,11 +4,17 @@ import AppRenderer from "../renderer/AppRenderer";
 import PropertyPanel from "../editor/PropertyPanel";
 import ComponentTree from "../editor/ComponentTree";
 import PublishedRenderer from "../renderer/PublishedRenderer";
+import ThemeSelector from "../editor/ThemeSelector";
+import { MdOutlineSplitscreen } from "react-icons/md";
 import { style } from "../style/style";
 import JSZip from "jszip";
+import { themes } from "../themes/themes";
 
 const editorPage = ({ initialSchema }) => {
-  const [schema, setSchema] = useState(initialSchema);
+  const [schema, setSchema] = useState(() => ({
+    ...initialSchema,
+    theme: initialSchema.theme || themes.minimal,
+  }));
   if (!schema || !schema.screens || !Array.isArray(schema.screens)) {
     return <div>Invalid schema loaded</div>;
   }
@@ -561,12 +567,15 @@ const editorPage = ({ initialSchema }) => {
     // 1. HTML
     const html = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>Published App</title>
-  <link rel="manifest" href="manifest.json" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#6200ee" />
+  <meta name="theme-color" content="#000000">
+
+  <link rel="manifest" href="manifest.json" />
+
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -574,86 +583,203 @@ const editorPage = ({ initialSchema }) => {
       });
     }
   </script>
+
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  font-family: system-ui, sans-serif;
-  background: #ffffff;
-}
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: system-ui, sans-serif;
+    }
 
-body {
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-}
+    /* Root container becomes the app */
+    #app {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
 
-#app {
-  width: 100vw;
-  height: 100vh;
-  padding: 16px;
-  box-sizing: border-box;
-  background: #ffffff;
-  overflow-y: auto;
-}
-    button { padding:10px; margin:6px 0; background:#6200ee; color:white; border:none; border-radius:4px; }
+    /* Actual mobile screen */
+    .screen {
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      background: #ffffff;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      outline: none;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
   </style>
 </head>
+
 <body>
   <div id="app"></div>
+
   <script>
     const schema = ${JSON.stringify(schema, null, 2)};
     let currentScreenId = schema.screens[0].id;
 
+    const defaultTheme = {
+      colors: {
+        background: "#ffffff",
+        surface: "#f5f5f5",
+        primary: "#6200ee",
+        text: "#000000",
+        border: "#dddddd"
+      },
+      font: "system-ui, sans-serif",
+      radius: 8,
+      spacing: 8
+    };
+
+    const theme = {
+      ...defaultTheme,
+      ...(schema.theme || {}),
+      colors: {
+        ...defaultTheme.colors,
+        ...(schema.theme?.colors || {})
+      }
+    };
+
+    function px(v) {
+      return typeof v === "number" ? v + "px" : v;
+    }
+
+    function normalizeStyle(style = {}) {
+      return {
+        ...style,
+        margin: px(style.margin),
+        marginTop: px(style.marginTop),
+        marginBottom: px(style.marginBottom),
+        marginLeft: px(style.marginLeft),
+        marginRight: px(style.marginRight),
+
+        padding: px(style.padding),
+        paddingTop: px(style.paddingTop),
+        paddingBottom: px(style.paddingBottom),
+        paddingLeft: px(style.paddingLeft),
+        paddingRight: px(style.paddingRight),
+
+        borderRadius: px(style.borderRadius),
+        fontSize: px(style.fontSize),
+      };
+    }
+
     function render() {
       const root = document.getElementById("app");
       root.innerHTML = "";
+
       const screen = schema.screens.find(s => s.id === currentScreenId);
       if (!screen) return;
-      screen.components.forEach(c => renderComponent(c, root));
+
+      const screenEl = document.createElement("div");
+      screenEl.className = "screen";
+      screenEl.style.background = theme.colors.background;
+      screenEl.style.color = theme.colors.text;
+      screenEl.style.fontFamily = theme.font;
+
+      const title = document.createElement("h2");
+      title.textContent = screen.name;
+      title.style.marginBottom = theme.spacing * 2 + "px";
+      screenEl.appendChild(title);
+
+      screen.components.forEach(c => renderComponent(c, screenEl));
+
+      root.appendChild(screenEl);
     }
 
     function renderComponent(component, parent) {
+      const { type, props = {}, style = {}, children = [] } = component;
       let el;
-      switch (component.type) {
+
+      const userStyle = normalizeStyle(style);
+
+      switch (type) {
         case "Text":
           el = document.createElement("p");
-          el.textContent = component.props.text;
+          el.textContent = props.text;
+          el.style.margin = theme.spacing + "px 0";
           break;
+
         case "Button":
           el = document.createElement("button");
-          el.textContent = component.props.label;
+          el.textContent = props.label;
+          el.style.background = theme.colors.primary;
+          el.style.color = "#fff";
+          el.style.padding = theme.spacing + "px " + theme.spacing * 2 + "px";
+          el.style.borderRadius = theme.radius + "px";
+          el.style.margin = theme.spacing + "px 0";
           el.onclick = () => {
-            currentScreenId = component.props.action.targetScreenId;
-            render();
+            if (props.action?.type === "navigate") {
+              currentScreenId = props.action.targetScreenId;
+              render();
+            }
           };
           break;
+
         case "Image":
           el = document.createElement("img");
-          el.src = component.props.src;
-          el.style.width = "100%";
+          el.src = props.src;
+          el.style.borderRadius = theme.radius + "px";
+          el.style.margin = theme.spacing + "px 0";
           break;
+
         case "Spacer":
           el = document.createElement("div");
-          el.style.height = component.props.height + "px";
+          el.style.height = props.height + "px";
           break;
+
         case "List":
           el = document.createElement("ul");
-          component.props.items.forEach(i => {
+          el.style.paddingLeft = theme.spacing * 2 + "px";
+          props.items.forEach(i => {
             const li = document.createElement("li");
             li.textContent = i;
             el.appendChild(li);
           });
           break;
+
         case "Container":
           el = document.createElement("div");
-          el.style.border = "1px dashed #aaa";
-          el.style.padding = "10px";
-          component.children.forEach(child => renderComponent(child, el));
+          el.style.background = theme.colors.surface;
+          el.style.border = "1px solid " + theme.colors.border;
+          el.style.borderRadius = theme.radius + "px";
+          el.style.padding = theme.spacing + "px";
+          el.style.margin = theme.spacing + "px 0";
+          children.forEach(child => renderComponent(child, el));
           break;
+
+        default:
+          return;
       }
+
+      Object.assign(el.style, userStyle);
       parent.appendChild(el);
     }
 
@@ -956,9 +1082,18 @@ self.addEventListener("fetch", e => {
                       // scrollBehavior: "smooth"
                     }}
                   >
-                    📱 {screen.name}
+                    <MdOutlineSplitscreen /> {screen.name}
                   </div>
                 ))}
+                <ThemeSelector
+                  currentTheme={schema.theme}
+                  onChange={(theme) => {
+                    setSchema((prev) => ({
+                      ...prev,
+                      theme,
+                    }));
+                  }}
+                />
               </>
             )}
 
@@ -1092,50 +1227,6 @@ self.addEventListener("fetch", e => {
 
             <div
               style={{
-                marginBottom: 12,
-                paddingBottom: 12,
-                borderBottom: "1px solid #ddd",
-              }}
-            >
-              <h4>
-                Add Component{" "}
-                {selectedComponent && selectedComponent.type === "Container"
-                  ? "Inside Container"
-                  : "To Screen"}
-              </h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {["Text", "Button", "Image", "Spacer", "List", "Container"].map(
-                  (type) => (
-                    <button
-                      key={type}
-                      onClick={() => addComponent(type)}
-                      disabled={
-                        selectedComponent &&
-                        selectedComponent.type !== "Container"
-                      }
-                      style={{
-                        padding: "6px",
-                        fontSize: 12,
-                        cursor:
-                          selectedComponent &&
-                          selectedComponent.type !== "Container"
-                            ? "not-allowed"
-                            : "pointer",
-                        opacity:
-                          selectedComponent &&
-                          selectedComponent.type !== "Container"
-                            ? 0.5
-                            : 1,
-                      }}
-                    >
-                      + {type}
-                    </button>
-                  ),
-                )}
-              </div>
-            </div>
-            <div
-              style={{
                 display: "flex",
                 gap: 8,
                 marginBottom: 12,
@@ -1180,6 +1271,53 @@ self.addEventListener("fetch", e => {
           </div>
         )}
       </div>
+
+      {mode === "builder" && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#1e1e1e",
+            border: "1px solid #333",
+            borderRadius: 12,
+            padding: "8px 12px",
+            display: "flex",
+            gap: 8,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+            zIndex: 9999,
+          }}
+        >
+          {["Text", "Button", "Image", "Spacer", "List", "Container"].map(
+            (type) => {
+              const disabled =
+                selectedComponent && selectedComponent.type !== "Container";
+
+              return (
+                <button
+                  key={type}
+                  onClick={() => addComponent(type)}
+                  disabled={disabled}
+                  style={{
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    borderRadius: 6,
+                    background: disabled ? "#333" : "#6200ee",
+                    color: "#fff",
+                    border: "none",
+                    cursor: disabled ? "not-allowed" : "pointer",
+                    opacity: disabled ? 0.4 : 1,
+                    transition: "0.15s",
+                  }}
+                >
+                  + {type}
+                </button>
+              );
+            },
+          )}
+        </div>
+      )}
     </>
   );
 };

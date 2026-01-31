@@ -1,16 +1,17 @@
 import React, { useState } from "react";
+import { HiHashtag } from "react-icons/hi";
 
 function ComponentTree({ components, selectedId, onSelect }) {
   const [collapsed, setCollapsed] = useState({});
   const [hovered, setHovered] = useState(null);
 
   const icons = {
-    Text: "📝",
-    Button: "🔘",
-    Image: "🖼️",
-    List: "📋",
-    Spacer: "↕️",
-    Container: "📦",
+    Text: <HiHashtag />,
+    Button: <HiHashtag />,
+    Image: <HiHashtag />,
+    List: <HiHashtag />,
+    Spacer: <HiHashtag />,
+    Container: <HiHashtag />,
   };
 
   function toggle(id) {

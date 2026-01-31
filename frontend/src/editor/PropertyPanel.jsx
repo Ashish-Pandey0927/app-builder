@@ -182,6 +182,58 @@ function PropertyPanel({
           Layout
         </div>
 
+        {/* FLEXBOX */}
+        <div style={sectionStyle}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+            Flexbox
+          </div>
+
+          <div style={labelStyle}>Display</div>
+          <select
+            style={inputStyle}
+            value={style.display || "block"}
+            onChange={(e) => updateStyle("display", e.target.value)}
+          >
+            <option value="block">Block</option>
+            <option value="flex">Flex</option>
+          </select>
+
+          <div style={labelStyle}>Direction</div>
+          <select
+            style={inputStyle}
+            value={style.flexDirection || "row"}
+            onChange={(e) => updateStyle("flexDirection", e.target.value)}
+          >
+            <option value="row">Row</option>
+            <option value="column">Column</option>
+          </select>
+
+          <div style={labelStyle}>Justify</div>
+          <select
+            style={inputStyle}
+            value={style.justifyContent || "flex-start"}
+            onChange={(e) => updateStyle("justifyContent", e.target.value)}
+          >
+            <option value="flex-start">Start</option>
+            <option value="center">Center</option>
+            <option value="flex-end">End</option>
+            <option value="space-between">Space Between</option>
+            <option value="space-around">Space Around</option>
+          </select>
+
+          <div style={labelStyle}>Align Items</div>
+          <select
+            style={inputStyle}
+            value={style.alignItems || "stretch"}
+            onChange={(e) => updateStyle("alignItems", e.target.value)}
+          >
+            <option value="stretch">Stretch</option>
+            <option value="flex-start">Start</option>
+            <option value="center">Center</option>
+            <option value="flex-end">End</option>
+          </select>
+        </div>
+
         <div style={labelStyle}>Width</div>
         <input
           style={inputStyle}
@@ -208,26 +260,84 @@ function PropertyPanel({
         </select>
       </div>
 
-      {/* SPACING */}
+      {/* POSITION */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Position
+        </div>
+
+        <select
+          style={inputStyle}
+          value={style.position || "static"}
+          onChange={(e) => updateStyle("position", e.target.value)}
+        >
+          <option value="static">Static</option>
+          <option value="relative">Relative</option>
+          <option value="absolute">Absolute</option>
+          <option value="fixed">Fixed</option>
+        </select>
+
+        {["top", "left", "right", "bottom"].map((pos) => (
+          <div key={pos}>
+            <div style={labelStyle}>{pos.toUpperCase()} (px)</div>
+            <input
+              type="number"
+              style={inputStyle}
+              value={style[pos] || ""}
+              onChange={(e) => updateStyle(pos, Number(e.target.value))}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* SPACING (Advanced) */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
           Spacing
         </div>
 
-        <div style={labelStyle}>Padding</div>
+        <div style={labelStyle}>Padding X</div>
         <input
           type="number"
           style={inputStyle}
-          value={style.padding || 0}
-          onChange={(e) => updateStyle("padding", Number(e.target.value))}
+          value={style.paddingLeft || 0}
+          onChange={(e) => {
+            updateStyle("paddingLeft", Number(e.target.value));
+            updateStyle("paddingRight", Number(e.target.value));
+          }}
         />
 
-        <div style={labelStyle}>Margin</div>
+        <div style={labelStyle}>Padding Y</div>
         <input
           type="number"
           style={inputStyle}
-          value={style.margin || 0}
-          onChange={(e) => updateStyle("margin", Number(e.target.value))}
+          value={style.paddingTop || 0}
+          onChange={(e) => {
+            updateStyle("paddingTop", Number(e.target.value));
+            updateStyle("paddingBottom", Number(e.target.value));
+          }}
+        />
+
+        <div style={labelStyle}>Margin X</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.marginLeft || 0}
+          onChange={(e) => {
+            updateStyle("marginLeft", Number(e.target.value));
+            updateStyle("marginRight", Number(e.target.value));
+          }}
+        />
+
+        <div style={labelStyle}>Margin Y</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.marginTop || 0}
+          onChange={(e) => {
+            updateStyle("marginTop", Number(e.target.value));
+            updateStyle("marginBottom", Number(e.target.value));
+          }}
         />
       </div>
 
@@ -249,6 +359,23 @@ function PropertyPanel({
           type="color"
           value={style.color || "#000000"}
           onChange={(e) => updateStyle("color", e.target.value)}
+        />
+      </div>
+
+      {/* TRANSFORM */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Transform
+        </div>
+
+        <div style={labelStyle}>Rotation (deg)</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.rotate || 0}
+          onChange={(e) =>
+            updateStyle("transform", `rotate(${e.target.value}deg)`)
+          }
         />
       </div>
 
@@ -282,6 +409,28 @@ function PropertyPanel({
         />
       </div>
 
+      {/* CORNER RADIUS */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Corner Radius
+        </div>
+
+        {["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map((c) => {
+          const key = "border" + c + "Radius";
+          return (
+            <div key={key}>
+              <div style={labelStyle}>{c}</div>
+              <input
+                type="number"
+                style={inputStyle}
+                value={style[key] || 0}
+                onChange={(e) => updateStyle(key, Number(e.target.value))}
+              />
+            </div>
+          );
+        })}
+      </div>
+
       {/* SHADOW */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
@@ -301,6 +450,35 @@ function PropertyPanel({
           <option value="medium">Medium</option>
           <option value="strong">Strong</option>
         </select>
+      </div>
+
+      {/* FILL & STROKE */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          Fill & Stroke
+        </div>
+
+        <div style={labelStyle}>Fill Color</div>
+        <input
+          type="color"
+          value={style.backgroundColor || "#ffffff"}
+          onChange={(e) => updateStyle("backgroundColor", e.target.value)}
+        />
+
+        <div style={labelStyle}>Stroke Width</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.borderWidth || 0}
+          onChange={(e) => updateStyle("borderWidth", Number(e.target.value))}
+        />
+
+        <div style={labelStyle}>Stroke Color</div>
+        <input
+          type="color"
+          value={style.borderColor || "#000000"}
+          onChange={(e) => updateStyle("borderColor", e.target.value)}
+        />
       </div>
 
       {/* TYPOGRAPHY */}

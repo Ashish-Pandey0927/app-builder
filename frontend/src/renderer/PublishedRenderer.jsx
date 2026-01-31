@@ -1,23 +1,72 @@
 // src/renderer/PublishedRenderer.jsx
 import React from "react";
+import { themes } from "../themes/themes";
 
 export default function PublishedRenderer({ schema, screenId, onNavigate }) {
   const screen = schema.screens.find((s) => s.id === screenId);
   if (!screen) return <p>Screen not found</p>;
 
+  // Theme merge (same logic as AppRenderer)
+  const defaultTheme = themes.minimal;
+  const theme = {
+    ...defaultTheme,
+    ...(schema.theme || {}),
+    colors: {
+      ...defaultTheme.colors,
+      ...(schema.theme?.colors || {}),
+    },
+  };
+
+  function normalizeStyle(style = {}) {
+  const px = (v) => (typeof v === "number" ? `${v}px` : v);
+
+  const normalized = {};
+
+  const keys = [
+    "margin",
+    "marginTop",
+    "marginBottom",
+    "marginLeft",
+    "marginRight",
+    "padding",
+    "paddingTop",
+    "paddingBottom",
+    "paddingLeft",
+    "paddingRight",
+    "borderRadius",
+    "fontSize",
+    "width",
+    "height",
+  ];
+
+  keys.forEach((key) => {
+    if (style[key] !== undefined) {
+      normalized[key] = px(style[key]);
+    }
+  });
+
+  return {
+    ...style,
+    ...normalized,
+  };
+}
+
+
   function renderComponent(component) {
-    const {
-      id,
-      type,
-      props = {},
-      style = {},
-      children = [],
-    } = component;
+    const { id, type, props = {}, style = {}, children = [] } = component;
 
     switch (type) {
       case "Text":
         return (
-          <p key={id} style={style}>
+          <p
+            key={id}
+            style={{
+              margin: `${theme.spacing}px 0`,
+              color: theme.colors.text,
+              fontFamily: theme.font,
+              ...normalizeStyle(style),
+            }}
+          >
             {props.text}
           </p>
         );
@@ -26,7 +75,16 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
         return (
           <button
             key={id}
-            style={style}
+            style={{
+              background: theme.colors.primary,
+              color: "#fff",
+              border: "none",
+              padding: `${theme.spacing}px ${theme.spacing * 2}px`,
+              borderRadius: theme.radius,
+              cursor: "pointer",
+              fontFamily: theme.font,
+              ...normalizeStyle(style),
+            }}
             onClick={() => {
               if (props.action?.type === "navigate") {
                 onNavigate(props.action.targetScreenId);
@@ -45,15 +103,30 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
             alt={props.alt || ""}
             style={{
               width: "100%",
+              borderRadius: theme.radius,
+              objectFit: "cover",
               display: "block",
-              ...style,
+              background: '#222',
+              ...normalizeStyle(style),
+            }}
+            onError={(e) => {
+              e.target.src =
+                "https://via.placeholder.com/300x150?text=Image+Not+Found"; 
             }}
           />
         );
 
       case "List":
         return (
-          <ul key={id} style={style}>
+          <ul
+            key={id}
+            style={{
+              color: theme.colors.text,
+              fontFamily: theme.font,
+              paddingLeft: theme.spacing * 2,
+              ...normalizeStyle(style),
+            }}
+          >
             {props.items?.map((i, idx) => (
               <li key={idx}>{i}</li>
             ))}
@@ -66,7 +139,7 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
             key={id}
             style={{
               height: props.height,
-              ...style,
+              ...normalizeStyle(style),
             }}
           />
         );
@@ -76,10 +149,13 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
           <div
             key={id}
             style={{
-              padding: 10,
-              margin: "8px 0",
+              padding: theme.spacing,
+              margin: `${theme.spacing}px 0`,
+              background: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.radius,
               boxSizing: "border-box",
-              ...style, // user styling overrides default
+              ...normalizeStyle(style),
             }}
           >
             {children.map(renderComponent)}
@@ -92,16 +168,35 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
   }
 
   return (
+  <div
+    style={{
+      maxWidthwidth: 360,
+      // height: "100vh",
+      background: theme.colors.background,
+      overflow: "hidden",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
     <div
       style={{
-        padding: 20,
-        minHeight: "100vh",
+        width: "100%",
+        maxWidth: 420,     // phone width limit
+        height: "100%",
+        background: theme.colors.background,
+        fontFamily: theme.font,
+        color: theme.colors.text,
+        padding: theme.spacing * 2,
         boxSizing: "border-box",
-        background: "#ffffff",
+        overflowY: "auto",
       }}
     >
-      <h2>{screen.name}</h2>
+      <h2 style={{ marginBottom: theme.spacing * 2 }}>{screen.name}</h2>
       {screen.components.map(renderComponent)}
     </div>
-  );
+  </div>
+);
+
+
 }

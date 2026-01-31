@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { themes } from "../themes/themes";
 
 function AppRenderer({
   schema,
@@ -17,27 +18,33 @@ function AppRenderer({
   const screen = schema.screens.find((s) => s.id === currentScreenId);
   if (!screen) return <p>Screen not found</p>;
 
+  // Theme merge (safe + fallback)
+  const defaultTheme = themes.minimal;
+  const theme = {
+    ...defaultTheme,
+    ...(schema.theme || {}),
+    colors: {
+      ...defaultTheme.colors,
+      ...(schema.theme?.colors || {}),
+    },
+  };
+
   const [draggedId, setDraggedId] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [hoverPosition, setHoverPosition] = useState(null);
+
   const GRID_SIZE = 20;
-  const [showGrid, setShowGrid] = useState(true);
+  const [showGrid] = useState(true);
   const [zoom, setZoom] = useState(1);
-  const [snapStrength, setSnapStrength] = useState(1); // 0 = loose, 1 = strict
+  const [snapStrength] = useState(1);
 
   const isBuilder = mode === "builder";
-  const isPreview = mode === "preview";
-  const isPublish = mode === "publish";
 
   useEffect(() => {
     function handleWheel(e) {
       if (!e.ctrlKey) return;
-
       e.preventDefault();
-      setZoom((z) => {
-        const next = z - e.deltaY * 0.001;
-        return Math.min(2, Math.max(0.4, next));
-      });
+      setZoom((z) => Math.min(2, Math.max(0.4, z - e.deltaY * 0.001)));
     }
 
     window.addEventListener("wheel", handleWheel, { passive: false });
@@ -45,7 +52,7 @@ function AppRenderer({
   }, []);
 
   function renderComponent(component, parentId = null) {
-    const { id, type, props = {}, style={} } = component;
+    const { id, type, props = {}, style = {} } = component;
     const isSelected = id === selectedComponentId;
     const isDraggable = type !== "Container";
 
@@ -55,20 +62,18 @@ function AppRenderer({
       margin: "6px 0",
       cursor: isBuilder ? "pointer" : "default",
       border: isSelected
-        ? "2px solid #6200ee"
+        ? `2px solid ${theme.colors.primary}`
         : hoveredId === id && isBuilder
-        ? "1px dashed #7c4dff"
-        : "1px solid rgba(0,0,0,0.15)",
-      borderRadius: 4,
+        ? `1px dashed ${theme.colors.primary}`
+        : `1px solid ${theme.colors.border}`,
+      borderRadius: theme.radius,
       background: isSelected
-        ? "rgba(98,0,238,0.05)"
+        ? theme.colors.hover
         : hoveredId === id
-        ? "rgba(124,77,255,0.04)"
+        ? theme.colors.surface
         : "transparent",
       boxShadow: isSelected
-        ? "0 0 0 2px rgba(41,98,255,0.25)"
-        : hoveredId === id
-        ? "0 0 0 1px rgba(156,39,176,0.2)"
+        ? `0 0 0 2px ${theme.colors.primary}55`
         : "none",
       transition: "all 0.12s ease",
     };
@@ -83,12 +88,32 @@ function AppRenderer({
 
     switch (type) {
       case "Text":
-        content = <p style={{ margin: 0, ...style }}>{props.text}</p>;
+        content = (
+          <p
+            style={{
+              margin: 0,
+              color: theme.colors.text,
+              fontFamily: theme.font,
+              ...style,
+            }}
+          >
+            {props.text}
+          </p>
+        );
         break;
+
       case "Button":
         content = (
-          <button 
-            style={style}
+          <button
+            style={{
+              background: theme.colors.primary,
+              color: "#fff",
+              border: "none",
+              padding: `${theme.spacing}px ${theme.spacing * 2}px`,
+              borderRadius: theme.radius,
+              cursor: "pointer",
+              ...style,
+            }}
             onClick={(e) => {
               e.stopPropagation();
               if (props.action?.type === "navigate") {
@@ -100,18 +125,27 @@ function AppRenderer({
           </button>
         );
         break;
+
       case "Image":
-        content = <img src={props.src} alt="" style={{ width: "100%", ...style }} />;
+        content = (
+          <img
+            src={props.src}
+            alt=""
+            style={{ width: "100%", borderRadius: theme.radius, ...style }}
+          />
+        );
         break;
+
       case "List":
         content = (
-          <ul style={style}>
+          <ul style={{ color: theme.colors.text, ...style }}>
             {props.items?.map((i, idx) => (
               <li key={idx}>{i}</li>
             ))}
           </ul>
         );
         break;
+
       case "Spacer":
         content = <div style={{ height: props.height, ...style }} />;
         break;
@@ -120,40 +154,38 @@ function AppRenderer({
         content = (
           <div
             style={{
-              border: "1px dashed #aaa",
-              padding: 10,
-              background: "rgba(98,0,238,0.03)",
+              border: `1px dashed ${theme.colors.border}`,
+              padding: theme.spacing,
+              background: theme.colors.surface,
+              borderRadius: theme.radius,
               minHeight: 40,
-              ...style
+              ...style,
             }}
             onDragOver={(e) => {
               const data = e.dataTransfer.getData("draggedComponent");
               if (!data) return;
-
               const parsed = JSON.parse(data);
-              if (parsed.fromContainerId === id) return; // let wrapper handle reorder
-
+              if (parsed.fromContainerId === id) return;
               e.preventDefault();
               e.stopPropagation();
             }}
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
-
               const data = JSON.parse(
                 e.dataTransfer.getData("draggedComponent")
               );
               if (data.fromContainerId === id) return;
-
               onMoveIntoContainer(data.id, id);
             }}
           >
-            <p style={{ fontSize: 12, color: "#666" }}>Container</p>
-            {component.children?.length ? (
-              component.children.map((c) => renderComponent(c, id))
-            ) : (
-              <p style={{ fontSize: 11, color: "#999" }}>Drop here</p>
-            )}
+            {component.children?.length
+              ? component.children.map((c) => renderComponent(c, id))
+              : (
+                <p style={{ fontSize: 11, color: theme.colors.text, opacity: 0.5 }}>
+                  Drop here
+                </p>
+              )}
           </div>
         );
         break;
@@ -170,7 +202,6 @@ function AppRenderer({
         draggable={isBuilder && isDraggable}
         onDragStart={(e) => {
           if (!isBuilder || !isDraggable) return;
-
           setDraggedId(id);
           e.dataTransfer.setData(
             "draggedComponent",
@@ -186,14 +217,11 @@ function AppRenderer({
           if (!isBuilder) return;
           e.preventDefault();
           e.stopPropagation();
-
           const rect = e.currentTarget.getBoundingClientRect();
           const offsetY = e.clientY - rect.top;
-
           const raw = offsetY;
           const snapped = Math.round(raw / GRID_SIZE) * GRID_SIZE;
           const snappedY = raw + (snapped - raw) * snapStrength;
-
           setHoveredId(id);
           setHoverPosition(snappedY < rect.height / 2 ? "before" : "after");
         }}
@@ -201,12 +229,10 @@ function AppRenderer({
           if (!isBuilder) return;
           e.preventDefault();
           e.stopPropagation();
-
           const data = JSON.parse(e.dataTransfer.getData("draggedComponent"));
           const rect = e.currentTarget.getBoundingClientRect();
           const offsetY = e.clientY - rect.top;
           const position = offsetY < rect.height / 2 ? "before" : "after";
-
           if (parentId === data.fromContainerId && data.id !== id) {
             onReorderComponent(data.id, id, position);
           }
@@ -214,61 +240,29 @@ function AppRenderer({
         onMouseEnter={() => isBuilder && setHoveredId(id)}
         onMouseLeave={() => isBuilder && setHoveredId(null)}
       >
-        {isSelected && isBuilder && (
-          <div
-            style={{
-              position: "absolute",
-              top: -18,
-              left: 0,
-              background: "#6200ee",
-              color: "#fff",
-              fontSize: 10,
-              padding: "2px 6px",
-              borderRadius: 4,
-              pointerEvents: "none",
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-            }}
-          >
-            {type}
-          </div>
-        )}
-        {hoveredId === id && isBuilder && (
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              height: 2,
-              background: "#6200ee",
-              top: hoverPosition === "before" ? 0 : "100%",
-              transform: "translateY(-1px)",
-            }}
-          />
-        )}
-
         {content}
       </div>
     );
   }
 
-  // SCREEN ROOT DROP ZONE (move OUT of container)
   return (
     <div
       style={{
         position: "relative",
-        padding: 20,
+        padding: theme.spacing * 2,
         minHeight: 360,
-        background: "#fafafa",
-        border: "1px solid #e0e0e0",
-        overflowY: "hidden",
+        background: theme.colors.background,
+        border: `1px solid ${theme.colors.border}`,
+        fontFamily: theme.font,
+        color: theme.colors.text,
+        overflow: "hidden",
         transform: `scale(${zoom})`,
         transformOrigin: "top center",
         backgroundImage: showGrid
           ? `
-      linear-gradient(to right, #eaeaea 1px, transparent 1px),
-      linear-gradient(to bottom, #eaeaea 1px, transparent 1px)
-    `
+            linear-gradient(to right, ${theme.colors.border} 1px, transparent 1px),
+            linear-gradient(to bottom, ${theme.colors.border} 1px, transparent 1px)
+          `
           : "none",
         backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
       }}
