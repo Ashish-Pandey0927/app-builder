@@ -170,9 +170,9 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
   return (
   <div
     style={{
-      maxWidthwidth: 360,
+      maxWidth: 360,
       // height: "100vh",
-      background: theme.colors.background,
+      background: screen.style?.backgroundColor || theme.colors.background,
       overflow: "hidden",
       display: "flex",
       justifyContent: "center",

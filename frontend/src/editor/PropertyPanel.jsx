@@ -9,10 +9,11 @@ const shadows = {
 
 function PropertyPanel({
   selectedComponent,
+  currentScreen,
   onUpdateComponent,
+  onUpdateScreen,
   onDeleteComponent,
   onDuplicateComponent,
-  onMoveComponent,
   componentIndex,
   totalComponents,
 }) {
@@ -20,37 +21,7 @@ function PropertyPanel({
 
   useEffect(() => {
     panelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [selectedComponent]);
-
-  if (!selectedComponent) {
-    return (
-      <div style={{ color: "#777", fontSize: 13, padding: 12 }}>
-        Select a component to edit its properties.
-      </div>
-    );
-  }
-
-  const { id, type, props = {}, style = {} } = selectedComponent;
-
-  function updateProp(key, value) {
-    onUpdateComponent({
-      ...selectedComponent,
-      props: {
-        ...props,
-        [key]: value,
-      },
-    });
-  }
-
-  function updateStyle(key, value) {
-    onUpdateComponent({
-      ...selectedComponent,
-      style: {
-        ...style,
-        [key]: value,
-      },
-    });
-  }
+  }, [selectedComponent, currentScreen]);
 
   const sectionStyle = {
     background: "#1e1e1e",
@@ -75,92 +46,74 @@ function PropertyPanel({
     fontSize: 12,
   };
 
-  function renderFields() {
-    switch (type) {
-      case "Text":
-        return (
-          <>
-            <div style={labelStyle}>Text</div>
-            <input
-              style={inputStyle}
-              value={props.text || ""}
-              onChange={(e) => updateProp("text", e.target.value)}
-            />
-          </>
-        );
+  const subSectionStyle = {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTop: "1px solid #333",
+  };
 
-      case "Button":
-        return (
-          <>
-            <div style={labelStyle}>Label</div>
-            <input
-              style={inputStyle}
-              value={props.label || ""}
-              onChange={(e) => updateProp("label", e.target.value)}
-            />
-          </>
-        );
+  /* ===============================
+     SCREEN PROPERTIES (NO SELECTION)
+     =============================== */
+  if (!selectedComponent && currentScreen) {
+    return (
+      <div
+        ref={panelRef}
+        style={{ height: "100%", overflowY: "auto", padding: 12 }}
+      >
+        <div style={sectionStyle}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+            Screen
+          </div>
 
-      case "Image":
-        return (
-          <>
-            <div style={labelStyle}>Image URL</div>
-            <input
-              style={inputStyle}
-              value={props.src || ""}
-              onChange={(e) => updateProp("src", e.target.value)}
-            />
-          </>
-        );
-
-      case "Spacer":
-        return (
-          <>
-            <div style={labelStyle}>Height (px)</div>
-            <input
-              type="number"
-              style={inputStyle}
-              value={props.height || 0}
-              onChange={(e) => updateProp("height", Number(e.target.value))}
-            />
-          </>
-        );
-
-      case "List":
-        return (
-          <>
-            <div style={labelStyle}>Items (one per line)</div>
-            <textarea
-              rows={5}
-              style={{ ...inputStyle, resize: "vertical" }}
-              value={(props.items || []).join("\n")}
-              onChange={(e) =>
-                updateProp("items", e.target.value.split("\n").filter(Boolean))
-              }
-            />
-          </>
-        );
-
-      default:
-        return null;
-    }
+          <div style={labelStyle}>Background Color</div>
+          <input
+            type="color"
+            value={currentScreen.style?.backgroundColor || "#ffffff"}
+            onChange={(e) => onUpdateScreen("backgroundColor", e.target.value)}
+          />
+        </div>
+      </div>
+    );
   }
 
+  if (!selectedComponent) {
+    return (
+      <div style={{ color: "#777", fontSize: 13, padding: 12 }}>
+        Select a component to edit its properties.
+      </div>
+    );
+  }
+
+  const { id, type, props = {}, style = {} } = selectedComponent;
+
+  function updateProp(key, value) {
+    onUpdateComponent({
+      ...selectedComponent,
+      props: { ...props, [key]: value },
+    });
+  }
+
+  function updateStyle(key, value) {
+    onUpdateComponent({
+      ...selectedComponent,
+      style: { ...style, [key]: value },
+    });
+  }
+
+  const rotation = style.transform?.match(/rotate\(([-\d.]+)deg\)/)?.[1] || 0;
+
+  /* ===============================
+     COMPONENT PROPERTIES
+     =============================== */
   return (
     <div
       ref={panelRef}
-      style={{
-        height: "100%",
-        overflowY: "auto",
-        padding: 12,
-        fontFamily: "sans-serif",
-      }}
+      style={{ height: "100%", overflowY: "auto", padding: 12 }}
     >
       {/* COMPONENT INFO */}
       <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-          Component
-        </div>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>Component</div>
         <div style={{ fontSize: 11, color: "#aaa" }}>ID</div>
         <div style={{ fontSize: 12 }}>{id}</div>
 
@@ -169,25 +122,64 @@ function PropertyPanel({
       </div>
 
       {/* CONTENT */}
-      <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Properties
-        </div>
-        {renderFields()}
-      </div>
-
-      {/* LAYOUT */}
-      <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Layout
-        </div>
-
-        {/* FLEXBOX */}
+      {(type === "Text" || type === "Button" || type === "Image" || type === "List") && (
         <div style={sectionStyle}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-            Flexbox
+            Content
           </div>
 
+          {type === "Text" && (
+            <>
+              <div style={labelStyle}>Text</div>
+              <input
+                style={inputStyle}
+                value={props.text || ""}
+                onChange={(e) => updateProp("text", e.target.value)}
+              />
+            </>
+          )}
+
+          {type === "Button" && (
+            <>
+              <div style={labelStyle}>Label</div>
+              <input
+                style={inputStyle}
+                value={props.label || ""}
+                onChange={(e) => updateProp("label", e.target.value)}
+              />
+            </>
+          )}
+
+          {type === "Image" && (
+            <>
+              <div style={labelStyle}>Image URL</div>
+              <input
+                style={inputStyle}
+                value={props.src || ""}
+                onChange={(e) => updateProp("src", e.target.value)}
+              />
+            </>
+          )}
+          {type === "List" && (
+            <>
+              <div style={labelStyle}>Items (comma separated)</div>
+              <input
+                style={inputStyle}
+                value={props.items ? props.items.join(", ") : ""}
+                onChange={(e) =>
+                  updateProp("items", e.target.value.split(",").map(item => item.trim()))
+                }
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* FLEXBOX */}
+      <div style={sectionStyle}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>Layout</div>
+
+        <div style={subSectionStyle}>
           <div style={labelStyle}>Display</div>
           <select
             style={inputStyle}
@@ -198,103 +190,50 @@ function PropertyPanel({
             <option value="flex">Flex</option>
           </select>
 
-          <div style={labelStyle}>Direction</div>
-          <select
-            style={inputStyle}
-            value={style.flexDirection || "row"}
-            onChange={(e) => updateStyle("flexDirection", e.target.value)}
-          >
-            <option value="row">Row</option>
-            <option value="column">Column</option>
-          </select>
+          {style.display === "flex" && (
+            <>
+              <div style={labelStyle}>Direction</div>
+              <select
+                style={inputStyle}
+                value={style.flexDirection || "row"}
+                onChange={(e) => updateStyle("flexDirection", e.target.value)}
+              >
+                <option value="row">Row</option>
+                <option value="column">Column</option>
+              </select>
 
-          <div style={labelStyle}>Justify</div>
-          <select
-            style={inputStyle}
-            value={style.justifyContent || "flex-start"}
-            onChange={(e) => updateStyle("justifyContent", e.target.value)}
-          >
-            <option value="flex-start">Start</option>
-            <option value="center">Center</option>
-            <option value="flex-end">End</option>
-            <option value="space-between">Space Between</option>
-            <option value="space-around">Space Around</option>
-          </select>
+              <div style={labelStyle}>Justify</div>
+              <select
+                style={inputStyle}
+                value={style.justifyContent || "flex-start"}
+                onChange={(e) => updateStyle("justifyContent", e.target.value)}
+              >
+                <option value="flex-start">Start</option>
+                <option value="center">Center</option>
+                <option value="flex-end">End</option>
+                <option value="space-between">Space Between</option>
+                <option value="space-around">Space Around</option>
+              </select>
 
-          <div style={labelStyle}>Align Items</div>
-          <select
-            style={inputStyle}
-            value={style.alignItems || "stretch"}
-            onChange={(e) => updateStyle("alignItems", e.target.value)}
-          >
-            <option value="stretch">Stretch</option>
-            <option value="flex-start">Start</option>
-            <option value="center">Center</option>
-            <option value="flex-end">End</option>
-          </select>
+              <div style={labelStyle}>Align Items</div>
+              <select
+                style={inputStyle}
+                value={style.alignItems || "stretch"}
+                onChange={(e) => updateStyle("alignItems", e.target.value)}
+              >
+                <option value="stretch">Stretch</option>
+                <option value="flex-start">Start</option>
+                <option value="center">Center</option>
+                <option value="flex-end">End</option>
+              </select>
+            </>
+          )}
         </div>
-
-        <div style={labelStyle}>Width</div>
-        <input
-          style={inputStyle}
-          value={style.width || ""}
-          onChange={(e) => updateStyle("width", e.target.value)}
-        />
-
-        <div style={labelStyle}>Height</div>
-        <input
-          style={inputStyle}
-          value={style.height || ""}
-          onChange={(e) => updateStyle("height", e.target.value)}
-        />
-
-        <div style={labelStyle}>Align</div>
-        <select
-          style={inputStyle}
-          value={style.textAlign || "left"}
-          onChange={(e) => updateStyle("textAlign", e.target.value)}
-        >
-          <option value="left">Left</option>
-          <option value="center">Center</option>
-          <option value="right">Right</option>
-        </select>
       </div>
 
-      {/* POSITION */}
+      {/* SPACING */}
       <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Position
-        </div>
-
-        <select
-          style={inputStyle}
-          value={style.position || "static"}
-          onChange={(e) => updateStyle("position", e.target.value)}
-        >
-          <option value="static">Static</option>
-          <option value="relative">Relative</option>
-          <option value="absolute">Absolute</option>
-          <option value="fixed">Fixed</option>
-        </select>
-
-        {["top", "left", "right", "bottom"].map((pos) => (
-          <div key={pos}>
-            <div style={labelStyle}>{pos.toUpperCase()} (px)</div>
-            <input
-              type="number"
-              style={inputStyle}
-              value={style[pos] || ""}
-              onChange={(e) => updateStyle(pos, Number(e.target.value))}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* SPACING (Advanced) */}
-      <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Spacing
-        </div>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>Spacing</div>
 
         <div style={labelStyle}>Padding X</div>
         <input
@@ -328,7 +267,6 @@ function PropertyPanel({
             updateStyle("marginRight", Number(e.target.value));
           }}
         />
-
         <div style={labelStyle}>Margin Y</div>
         <input
           type="number"
@@ -341,57 +279,30 @@ function PropertyPanel({
         />
       </div>
 
-      {/* COLORS */}
+      {/* VISUAL */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Colors
+          Visual
         </div>
 
-        <div style={labelStyle}>Background</div>
-        <input
-          type="color"
-          value={style.backgroundColor || "#ffffff"}
-          onChange={(e) => updateStyle("backgroundColor", e.target.value)}
+        <div style={labelStyle}>
+          Background
+        </div>
+        <input 
+        type="color"
+        value={style.backgroundColor || "#ffffff"}
+        onChange={(e) =>
+          updateStyle("backgroundColor", e.target.value)
+        }
         />
 
-        <div style={labelStyle}>Text</div>
-        <input
-          type="color"
-          value={style.color || "#000000"}
-          onChange={(e) => updateStyle("color", e.target.value)}
-        />
+        <div style={labelStyle}>Text Color</div>
+        <input type="color" value={style.color || "#000000"} onChange={(e) => updateStyle("color", e.target.value)} />
       </div>
 
-      {/* TRANSFORM */}
+      {/* BORDER  */}
       <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Transform
-        </div>
-
-        <div style={labelStyle}>Rotation (deg)</div>
-        <input
-          type="number"
-          style={inputStyle}
-          value={style.rotate || 0}
-          onChange={(e) =>
-            updateStyle("transform", `rotate(${e.target.value}deg)`)
-          }
-        />
-      </div>
-
-      {/* BORDER */}
-      <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Border
-        </div>
-
-        <div style={labelStyle}>Radius</div>
-        <input
-          type="number"
-          style={inputStyle}
-          value={style.borderRadius || 0}
-          onChange={(e) => updateStyle("borderRadius", Number(e.target.value))}
-        />
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Border</div>
 
         <div style={labelStyle}>Width</div>
         <input
@@ -404,39 +315,38 @@ function PropertyPanel({
         <div style={labelStyle}>Color</div>
         <input
           type="color"
+          style={inputStyle}
           value={style.borderColor || "#000000"}
           onChange={(e) => updateStyle("borderColor", e.target.value)}
         />
+
+        <div style={labelStyle}>Radius</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={style.borderRadius || 0}
+          onChange={(e) => updateStyle("borderRadius", Number(e.target.value))}
+        />
       </div>
 
-      {/* CORNER RADIUS */}
+      {/* TRANSFORM */}
       <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Corner Radius
-        </div>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>Transform</div>
 
-        {["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map((c) => {
-          const key = "border" + c + "Radius";
-          return (
-            <div key={key}>
-              <div style={labelStyle}>{c}</div>
-              <input
-                type="number"
-                style={inputStyle}
-                value={style[key] || 0}
-                onChange={(e) => updateStyle(key, Number(e.target.value))}
-              />
-            </div>
-          );
-        })}
+        <div style={labelStyle}>Rotation (deg)</div>
+        <input
+          type="number"
+          style={inputStyle}
+          value={rotation}
+          onChange={(e) =>
+            updateStyle("transform", `rotate(${e.target.value}deg)`)
+          }
+        />
       </div>
 
       {/* SHADOW */}
       <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Shadow
-        </div>
-
+        <div style={{ fontSize: 13, fontWeight: 600 }}>Shadow</div>
         <select
           style={inputStyle}
           value={
@@ -451,64 +361,6 @@ function PropertyPanel({
           <option value="strong">Strong</option>
         </select>
       </div>
-
-      {/* FILL & STROKE */}
-      <div style={sectionStyle}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-          Fill & Stroke
-        </div>
-
-        <div style={labelStyle}>Fill Color</div>
-        <input
-          type="color"
-          value={style.backgroundColor || "#ffffff"}
-          onChange={(e) => updateStyle("backgroundColor", e.target.value)}
-        />
-
-        <div style={labelStyle}>Stroke Width</div>
-        <input
-          type="number"
-          style={inputStyle}
-          value={style.borderWidth || 0}
-          onChange={(e) => updateStyle("borderWidth", Number(e.target.value))}
-        />
-
-        <div style={labelStyle}>Stroke Color</div>
-        <input
-          type="color"
-          value={style.borderColor || "#000000"}
-          onChange={(e) => updateStyle("borderColor", e.target.value)}
-        />
-      </div>
-
-      {/* TYPOGRAPHY */}
-      {(type === "Text" || type === "Button") && (
-        <div style={sectionStyle}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-            Typography
-          </div>
-
-          <div style={labelStyle}>Font Size</div>
-          <input
-            type="number"
-            style={inputStyle}
-            value={style.fontSize || 14}
-            onChange={(e) => updateStyle("fontSize", Number(e.target.value))}
-          />
-
-          <div style={labelStyle}>Font Weight</div>
-          <select
-            style={inputStyle}
-            value={style.fontWeight || "400"}
-            onChange={(e) => updateStyle("fontWeight", e.target.value)}
-          >
-            <option value="400">Regular</option>
-            <option value="500">Medium</option>
-            <option value="600">Semi Bold</option>
-            <option value="700">Bold</option>
-          </select>
-        </div>
-      )}
 
       {/* ACTIONS */}
       <div style={sectionStyle}>

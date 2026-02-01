@@ -150,6 +150,74 @@
 }
 
 
+/* Blur background when loading */
+.blurred {
+  filter: blur(6px) brightness(0.7);
+  transition: filter 0.3s ease;
+}
+
+/* Fullscreen overlay */
+.generating-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.65);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Center card */
+.generating-card {
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  color: #fff;
+  width: 280px;
+  animation: fadeUp 0.35s ease;
+}
+
+/* Spinner */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+.generating-card h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.generating-card p {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
 
 @keyframes gradientFlow {
   0% { background-position: 0% 50%; }

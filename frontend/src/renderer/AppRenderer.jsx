@@ -251,12 +251,12 @@ function AppRenderer({
         position: "relative",
         padding: theme.spacing * 2,
         minHeight: 360,
-        background: theme.colors.background,
+        background: screen.style?.backgroundColor || theme.colors.background,
         border: `1px solid ${theme.colors.border}`,
         fontFamily: theme.font,
         color: theme.colors.text,
         overflow: "hidden",
-        transform: `scale(${zoom})`,
+        // transform: `scale(${zoom})`,
         transformOrigin: "top center",
         backgroundImage: showGrid
           ? `

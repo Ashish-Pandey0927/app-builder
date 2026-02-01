@@ -12,9 +12,14 @@ import { themes } from "../themes/themes";
 
 const editorPage = ({ initialSchema }) => {
   const [schema, setSchema] = useState(() => ({
-    ...initialSchema,
-    theme: initialSchema.theme || themes.minimal,
-  }));
+  ...initialSchema,
+  screens: initialSchema.screens.map((s) => ({
+    ...s,
+    style: s.style || { backgroundColor: "#ffffff" },
+  })),
+  theme: initialSchema.theme || themes.minimal,
+}));
+
   if (!schema || !schema.screens || !Array.isArray(schema.screens)) {
     return <div>Invalid schema loaded</div>;
   }
@@ -69,6 +74,8 @@ const editorPage = ({ initialSchema }) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedComponentId]);
+
+  const [openMenu, setOpenMenu] = useState(null);
 
   function updateComponent(updatedComponent) {
     const updateInTree = (components) => {
@@ -301,6 +308,23 @@ const editorPage = ({ initialSchema }) => {
 
       return { ...prev, screens: newScreens };
     });
+  }
+
+  function updateScreen(key, value) {
+    setSchema((prev) => ({
+      ...prev,
+      screens: prev.screens.map((s) =>
+        s.id === currentScreenId
+          ? {
+              ...s,
+              style: {
+                ...(s.style || {}),
+                [key]: value,
+              },
+            }
+          : s,
+      ),
+    }));
   }
 
   function moveComponent(componentId, direction) {
@@ -700,7 +724,7 @@ const editorPage = ({ initialSchema }) => {
 
       const screenEl = document.createElement("div");
       screenEl.className = "screen";
-      screenEl.style.background = theme.colors.background;
+      screenEl.style.background = screen.style?.backgroundColor || theme.colors.background;
       screenEl.style.color = theme.colors.text;
       screenEl.style.fontFamily = theme.font;
 
@@ -859,6 +883,34 @@ self.addEventListener("fetch", e => {
     }
   }
 
+  function MenuItem({ label, onClick, danger }) {
+    return (
+      <div
+        onClick={onClick}
+        style={{
+          padding: "8px 14px",
+          fontSize: 13,
+          cursor: "pointer",
+          color: danger ? "#ff6b6b" : "#ddd",
+          whiteSpace: "nowrap",
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.background = "rgba(255,255,255,0.05)")
+        }
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        {label}
+      </div>
+    );
+  }
+  useEffect(() => {
+    function closeMenu() {
+      setOpenMenu(null);
+    }
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
+  }, []);
+
   const componentIndex = currentScreen?.components.findIndex(
     (c) => c.id === selectedComponentId,
   );
@@ -874,8 +926,14 @@ self.addEventListener("fetch", e => {
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef({ x: 0, y: 0 });
 
+  const [mouseMode, setMouseMode] = useState("select");
+  // "select" | "pan"
+
   function onMouseDown(e) {
-    if (e.button !== 1 && !e.spaceKey) return; // middle mouse or space+drag
+    if (mouseMode !== "pan") return;
+
+    if (e.button !== 0) return;
+
     setIsPanning(true);
     panStart.current = {
       x: e.clientX - canvasPos.x,
@@ -884,7 +942,8 @@ self.addEventListener("fetch", e => {
   }
 
   function onMouseMove(e) {
-    if (!isPanning) return;
+    if (!isPanning || mouseMode !== "pan") return;
+
     setCanvasPos({
       x: e.clientX - panStart.current.x,
       y: e.clientY - panStart.current.y,
@@ -910,6 +969,46 @@ self.addEventListener("fetch", e => {
     return () => window.removeEventListener("wheel", handleWheel);
   }, []);
 
+  function ToolButton({ label, active, onClick }) {
+    return (
+      <button
+        onClick={onClick}
+        style={{
+          padding: "6px 10px",
+          fontSize: 12,
+          borderRadius: 6,
+          background: active ? "#6200ee" : "#2a2a2a",
+          color: "#fff",
+          border: "1px solid #333",
+          cursor: "pointer",
+        }}
+      >
+        {label}
+      </button>
+    );
+  }
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.code === "Space") {
+        setMouseMode("pan");
+      }
+    }
+
+    function onKeyUp(e) {
+      if (e.code === "Space") {
+        setMouseMode("select");
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
+
   return (
     <>
       <div
@@ -925,7 +1024,98 @@ self.addEventListener("fetch", e => {
           fontSize: 13,
         }}
       >
-        <div style={{ fontWeight: 600 }}>AI App Builder</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ fontWeight: 600 }}>AI App Builder</div>
+
+          {/* MENUS */}
+          {["File", "Edit", "View"].map((menu) => (
+            <div key={menu} style={{ position: "relative" }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenu(
+                    openMenu === menu.toLowerCase() ? null : menu.toLowerCase(),
+                  );
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#ddd",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                {menu}
+              </button>
+
+              {openMenu === menu.toLowerCase() && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 32,
+                    left: 0,
+                    background: "#1e1e1e",
+                    border: "1px solid #333",
+                    borderRadius: 8,
+                    minWidth: 180,
+                    padding: "6px 0",
+                    zIndex: 9999,
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {menu === "File" && (
+                    <>
+                      <MenuItem
+                        label="Import JSON…"
+                        onClick={() => {
+                          document.getElementById("file-input").click();
+                          setOpenMenu(null);
+                        }}
+                      />
+                      <MenuItem
+                        label="Reset Project"
+                        danger
+                        onClick={() => {
+                          resetProject();
+                          setOpenMenu(null);
+                        }}
+                      />
+                    </>
+                  )}
+
+                  {menu === "Edit" && (
+                    <>
+                      <MenuItem label="Undo" onClick={undo} />
+                      <MenuItem label="Redo" onClick={redo} />
+                    </>
+                  )}
+
+                  {menu === "View" && (
+                    <>
+                      <MenuItem
+                        label="Design Mode"
+                        onClick={() => setMode("builder")}
+                      />
+                      <MenuItem
+                        label="Preview Mode"
+                        onClick={() => setMode("preview")}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Hidden file input */}
+          <input
+            id="file-input"
+            type="file"
+            accept=".json"
+            style={{ display: "none" }}
+            onChange={(e) => importSchema(e.target.files[0])}
+          />
+        </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
@@ -1035,15 +1225,15 @@ self.addEventListener("fetch", e => {
           >
             {leftTab === "screens" && (
               <>
-                <div style={{ marginBottom: 10 }}>
+                {/* <div style={{ marginBottom: 10 }}>
                   <input
                     type="file"
                     accept=".json"
                     onChange={(e) => importSchema(e.target.files[0])}
                   />
-                </div>
+                </div> */}
 
-                <button
+                {/* <button
                   onClick={resetProject}
                   style={{
                     width: "100%",
@@ -1057,7 +1247,7 @@ self.addEventListener("fetch", e => {
                   }}
                 >
                   Reset Project
-                </button>
+                </button> */}
 
                 {screens.map((screen) => (
                   <div
@@ -1126,11 +1316,20 @@ self.addEventListener("fetch", e => {
             overflow: "hidden",
             display: "flex",
             position: "relative",
-            cursor: isPanning ? "grabbing" : "default",
+            cursor:
+              mouseMode === "pan"
+                ? isPanning
+                  ? "grabbing"
+                  : "grab"
+                : "default",
             userSelect: isPanning ? "none" : "auto",
             ...style.canvasGrid,
           }}
-          onClick={() => setSelectedComponentId(null)}
+          onClick={() => {
+            if (mouseMode === "select") {
+              setSelectedComponentId(null);
+            }
+          }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
@@ -1197,6 +1396,7 @@ self.addEventListener("fetch", e => {
         </div>
 
         {/* Property Panel */}
+        
 
         {mode !== "publish" && (
           <div
@@ -1225,7 +1425,7 @@ self.addEventListener("fetch", e => {
             </div>
           )} */}
 
-            <div
+            {/* <div
               style={{
                 display: "flex",
                 gap: 8,
@@ -1257,11 +1457,13 @@ self.addEventListener("fetch", e => {
               >
                 Redo
               </button>
-            </div>
+            </div> */}
 
             <PropertyPanel
               selectedComponent={selectedComponent}
+              currentScreen={currentScreen}
               onUpdateComponent={updateComponent}
+              onUpdateScreen={updateScreen}
               onDeleteComponent={deleteComponent}
               onDuplicateComponent={duplicateComponent}
               onMoveComponent={moveComponent}
@@ -1285,10 +1487,34 @@ self.addEventListener("fetch", e => {
             padding: "8px 12px",
             display: "flex",
             gap: 8,
+            alignItems: "center",
             boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
             zIndex: 9999,
           }}
         >
+          {/* Mouse tools */}
+          <ToolButton
+            active={mouseMode === "select"}
+            onClick={() => setMouseMode("select")}
+            label="Select"
+          />
+
+          <ToolButton
+            active={mouseMode === "pan"}
+            onClick={() => setMouseMode("pan")}
+            label="Pan"
+          />
+
+          <div
+            style={{
+              width: 1,
+              height: 20,
+              background: "#333",
+              margin: "0 6px",
+            }}
+          />
+
+          {/* Add components */}
           {["Text", "Button", "Image", "Spacer", "List", "Container"].map(
             (type) => {
               const disabled =
@@ -1308,7 +1534,6 @@ self.addEventListener("fetch", e => {
                     border: "none",
                     cursor: disabled ? "not-allowed" : "pointer",
                     opacity: disabled ? 0.4 : 1,
-                    transition: "0.15s",
                   }}
                 >
                   + {type}
