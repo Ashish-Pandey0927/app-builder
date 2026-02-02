@@ -35,21 +35,10 @@ function AppRenderer({
 
   const GRID_SIZE = 20;
   const [showGrid] = useState(true);
-  const [zoom, setZoom] = useState(1);
   const [snapStrength] = useState(1);
 
   const isBuilder = mode === "builder";
 
-  useEffect(() => {
-    function handleWheel(e) {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      setZoom((z) => Math.min(2, Math.max(0.4, z - e.deltaY * 0.001)));
-    }
-
-    window.addEventListener("wheel", handleWheel, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheel);
-  }, []);
 
   function renderComponent(component, parentId = null) {
     const { id, type, props = {}, style = {} } = component;
@@ -246,18 +235,34 @@ function AppRenderer({
   }
 
   return (
+  <div
+    style={{
+      width: "100%",
+      height: "100%",
+      background: screen.style?.backgroundColor || theme.colors.background,
+      fontFamily: theme.font,
+      color: theme.colors.text,
+      overflow: "hidden",
+    }}
+    onDragOver={(e) => {
+      if (!isBuilder) return;
+      e.preventDefault();
+    }}
+    onDrop={(e) => {
+      if (!isBuilder) return;
+      e.preventDefault();
+      const data = JSON.parse(e.dataTransfer.getData("draggedComponent"));
+      onMoveIntoContainer(data.id, null);
+    }}
+  >
+    {/* INNER CONTENT LAYER */}
     <div
       style={{
-        position: "relative",
+        width: "100%",
+        height: "100%",
+        overflowY: "auto",
+        boxSizing: "border-box",
         padding: theme.spacing * 2,
-        minHeight: 360,
-        background: screen.style?.backgroundColor || theme.colors.background,
-        border: `1px solid ${theme.colors.border}`,
-        fontFamily: theme.font,
-        color: theme.colors.text,
-        overflow: "hidden",
-        // transform: `scale(${zoom})`,
-        transformOrigin: "top center",
         backgroundImage: showGrid
           ? `
             linear-gradient(to right, ${theme.colors.border} 1px, transparent 1px),
@@ -266,21 +271,12 @@ function AppRenderer({
           : "none",
         backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
       }}
-      onDragOver={(e) => {
-        if (!isBuilder) return;
-        e.preventDefault();
-      }}
-      onDrop={(e) => {
-        if (!isBuilder) return;
-        e.preventDefault();
-        const data = JSON.parse(e.dataTransfer.getData("draggedComponent"));
-        onMoveIntoContainer(data.id, null);
-      }}
     >
-      <h2>{screen.name}</h2>
+      <h2 style={{ marginBottom: theme.spacing * 2 }}>{screen.name}</h2>
       {screen.components.map((c) => renderComponent(c, null))}
     </div>
-  );
+  </div>
+);
 }
 
 export default AppRenderer;

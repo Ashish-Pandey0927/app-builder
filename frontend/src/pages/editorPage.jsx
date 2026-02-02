@@ -5,10 +5,13 @@ import PropertyPanel from "../editor/PropertyPanel";
 import ComponentTree from "../editor/ComponentTree";
 import PublishedRenderer from "../renderer/PublishedRenderer";
 import ThemeSelector from "../editor/ThemeSelector";
-import { MdOutlineSplitscreen } from "react-icons/md";
+import { MdOutlineSplitscreen, MdOutlineNetworkCell } from "react-icons/md";
+import { IoBatteryHalf } from "react-icons/io5";
 import { style } from "../style/style";
 import JSZip from "jszip";
 import { themes } from "../themes/themes";
+import { devices } from "../devices/devices";
+
 
 const editorPage = ({ initialSchema }) => {
   const [schema, setSchema] = useState(() => ({
@@ -883,24 +886,21 @@ self.addEventListener("fetch", e => {
     }
   }
 
-  function MenuItem({ label, onClick, danger }) {
+  function MenuItem({ label, onClick, danger, subMenu }) {
     return (
-      <div
-        onClick={onClick}
-        style={{
-          padding: "8px 14px",
-          fontSize: 13,
-          cursor: "pointer",
-          color: danger ? "#ff6b6b" : "#ddd",
-          whiteSpace: "nowrap",
-        }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.background = "rgba(255,255,255,0.05)")
-        }
-        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-      >
-        {label}
-      </div>
+      <div style={{ padding: "8px 14px" }}>
+        <div
+          onClick={onClick}
+          style={{
+            fontSize: 13,
+            cursor: "pointer",
+            color: danger ? "#ff5555" : "#ddd",
+          }}
+          >
+          {label}
+        </div>
+        {subMenu && <div style={{ marginTop: 6 }}>{subMenu}</div>}
+        </div>
     );
   }
   useEffect(() => {
@@ -918,6 +918,7 @@ self.addEventListener("fetch", e => {
   const totalComponents = currentScreen?.components.length;
 
   // const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [device, setDevice] = useState(devices.iphone14);
   const [mode, setMode] = useState("builder");
   // builder | preview | publish
   const [zoom, setZoom] = useState(1);
@@ -1050,6 +1051,7 @@ self.addEventListener("fetch", e => {
 
               {openMenu === menu.toLowerCase() && (
                 <div
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     position: "absolute",
                     top: 32,
@@ -1099,6 +1101,29 @@ self.addEventListener("fetch", e => {
                       <MenuItem
                         label="Preview Mode"
                         onClick={() => setMode("preview")}
+                      />
+                      <MenuItem
+                        label="Device"
+                        subMenu={
+                          <select
+                            value={device.name}
+                            onChange={(e) => {
+                              const selectedDevice = Object.values(devices).find(
+                                (d) => d.name === e.target.value,
+                              );
+                              if (selectedDevice) {
+                                setDevice(selectedDevice);
+                                setOpenMenu(null);
+                              }
+                            }}
+                          >
+                            {Object.values(devices).map((device) => (
+                              <option key={device.name} value={device.name}>
+                                {device.name}
+                              </option>
+                            ))}
+                          </select>
+                        }
                       />
                     </>
                   )}
@@ -1356,21 +1381,37 @@ self.addEventListener("fetch", e => {
             <div
               style={{
                 background: "#111",
-                borderRadius: 24,
+                borderRadius: device.borderRadius + 10,
                 boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
                 padding: 12,
               }}
             >
               <div
                 style={{
-                  width: 360,
-                  background: "#fff",
-                  borderRadius: 16,
-                  overflow: "visible",
-                  position: "relative",
+                  width: device.width,
+                  height: device.height,
+                  background: currentScreen?.style?.backgroundColor || "#fff",
+                  borderRadius: device.borderRadius,
+                  overflow: "hidden",
+                  // position: "relative",
                 }}
               >
-                <div style={{}}>
+                <div
+                  style={{
+                    height:28,
+                    background: device.platform === "ios" ? "#000" : "#121212",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 12px",
+                    fontSize: 12,
+                    overflow: "hidden",
+                  }}>
+                  <span>10:10</span>
+                  <span><MdOutlineNetworkCell /> <IoBatteryHalf /></span>
+                </div>
+                {/* <div> */}
                   {mode === "publish" ? (
                     <PublishedRenderer
                       schema={schema}
@@ -1389,7 +1430,7 @@ self.addEventListener("fetch", e => {
                       mode={mode}
                     />
                   )}
-                </div>
+                {/* </div> */}
               </div>
             </div>
           </div>

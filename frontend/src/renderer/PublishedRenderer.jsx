@@ -137,9 +137,12 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
         return (
           <div
             key={id}
+            aria-hidden
             style={{
-              height: props.height,
-              ...normalizeStyle(style),
+              height: `${props.size || theme.spacing}px`,
+              minHeight: `${props.size || theme.spacing}px`,
+              width: "100%",
+              flexShrink: 0,
             }}
           />
         );
@@ -170,7 +173,8 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
   return (
   <div
     style={{
-      maxWidth: 360,
+      width: 100 + "%",
+      height: 100 + "%",
       // height: "100vh",
       background: screen.style?.backgroundColor || theme.colors.background,
       overflow: "hidden",
@@ -182,7 +186,7 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
     <div
       style={{
         width: "100%",
-        maxWidth: 420,     // phone width limit
+        // maxWidth: 420,     // phone width limit
         height: "100%",
         background: theme.colors.background,
         fontFamily: theme.font,

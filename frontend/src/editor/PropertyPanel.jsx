@@ -122,7 +122,7 @@ function PropertyPanel({
       </div>
 
       {/* CONTENT */}
-      {(type === "Text" || type === "Button" || type === "Image" || type === "List") && (
+      {(type === "Text" || type === "Button" || type === "Image" || type === "List" || type === "Spacer") && (
         <div style={sectionStyle}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
             Content
@@ -169,6 +169,18 @@ function PropertyPanel({
                 onChange={(e) =>
                   updateProp("items", e.target.value.split(",").map(item => item.trim()))
                 }
+              />
+            </>
+          )}
+
+          {type === "Spacer" && (
+            <>
+              <div style={labelStyle}>Height (px)</div>
+              <input
+                type="number"
+                style={inputStyle}
+                value={props.height || 0}
+                onChange={(e) => updateProp("height", Number(e.target.value))}
               />
             </>
           )}
