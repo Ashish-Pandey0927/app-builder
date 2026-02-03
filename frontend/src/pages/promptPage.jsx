@@ -45,7 +45,7 @@ function PromptPage({ onGenerate }) {
     <div className={`animated-bg ${loading ? "blurred" : ""}`}>
       <div className="bg-blur">
         <div className="prompt-ui">
-          <div className="hero">
+          <div className="hero-prompt">
             <h1>AI App Builder</h1>
             <p>Describe your app. We build the UI instantly.</p>
 

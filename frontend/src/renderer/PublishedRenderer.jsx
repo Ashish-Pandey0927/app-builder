@@ -36,7 +36,6 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
     "borderRadius",
     "fontSize",
     "width",
-    "height",
   ];
 
   keys.forEach((key) => {
@@ -139,8 +138,8 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
             key={id}
             aria-hidden
             style={{
-              height: `${props.size || theme.spacing}px`,
-              minHeight: `${props.size || theme.spacing}px`,
+              height: `${props.height}px`,
+              minHeight: `${props.height}px`,
               width: "100%",
               flexShrink: 0,
             }}
@@ -173,14 +172,14 @@ export default function PublishedRenderer({ schema, screenId, onNavigate }) {
   return (
   <div
     style={{
-      width: 100 + "%",
-      height: 100 + "%",
+      width: "100%",
+      height: "100%",
       // height: "100vh",
       background: screen.style?.backgroundColor || theme.colors.background,
       overflow: "hidden",
       display: "flex",
       justifyContent: "center",
-      alignItems: "center",
+      alignItems: "stretch",
     }}
   >
     <div

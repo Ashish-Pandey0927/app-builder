@@ -243,6 +243,35 @@ function PropertyPanel({
         </div>
       </div>
 
+      {/* TYPOGRAPHY  */}
+      {(type === "Text" || type === "Button" || type === "List") && (
+        <div style={sectionStyle}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+            Typography
+          </div>
+          <div style={labelStyle}>Font Size (px)</div>
+          <input
+            type="number"
+            style={inputStyle}
+            value={style.fontSize || 14}
+            onChange={(e) => updateStyle("fontSize", Number(e.target.value))}
+          />
+
+          <div style={labelStyle}>Font Weight</div>
+          <select
+            style={inputStyle}    
+            value={style.fontWeight || "normal"}
+            onChange={(e) => updateStyle("fontWeight", e.target.value)}
+          >
+            <option value="400">Normal</option>
+            <option value="500">Medium</option>
+            <option value="600">Semi Bold</option>
+            <option value="700">Bold</option>
+          </select>
+        </div>
+      )}
+
+
       {/* SPACING */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 600 }}>Spacing</div>
