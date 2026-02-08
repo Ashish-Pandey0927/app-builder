@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import "../style/hero.css";
 import FakeEditorPreview from "./FakeEditorPreview";
+import HeroPrompt from "./HeroPrompt";
 
 export default function Hero({ onStart }) {
   useEffect(() => {
@@ -35,9 +36,9 @@ export default function Hero({ onStart }) {
 
   return (
     <section className="hero">
-      <div className="stars stars-back"></div>
-      <div className="stars stars-mid"></div>
-      <div className="stars stars-front"></div>
+      <div className="stars stars-small"></div>
+      <div className="stars stars-medium"></div>
+      <div className="stars stars-big"></div>
       <div className="shooting-stars"></div>
 
       <div className="hero-left">
@@ -51,12 +52,7 @@ export default function Hero({ onStart }) {
           No code. No hassle.
         </p>
 
-        <div className="hero-cta">
-          <button className="primary" onClick={onStart}>
-            Try the Editor
-          </button>
-          <button className="secondary">Demo Video</button>
-        </div>
+        <HeroPrompt onGenerate={onStart} />
         <p className="hero-cta-note">No sign-up required. Free beta</p>
       </div>
 

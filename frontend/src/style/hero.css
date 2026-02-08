@@ -4,7 +4,7 @@
     grid-template-columns: 1.1fr 1fr;
     align-items: center;
     padding: 80px;
-     background: radial-gradient(ellipse at bottom, #0d1020 0%, #05060a 70%);
+    background: radial-gradient(ellipse at bottom, #0d1020 0%, #05060a 70%);
     overflow: hidden;
     color: #ffffff;
     position: relative;
@@ -19,84 +19,66 @@
     pointer-events: none
 } */
 
-
-
-.stars,
-.stars::after {
-  position: absolute;
-  inset: 0;
-  content: "";
-  background: transparent;
-}
-
-.stars-back,
-.stars-mid,
-.stars-front {
+.stars{
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 3000px;
-    height: 3000px;
+    width: 1px;
+    height: 1px;
+    background: transparent;
 }
 
-/* BACK STARS */
-.stars-back {
-  width: 1px;
-  height: 1px;
-  border-radius: 50%;
-  box-shadow:
-    120px 300px #fff,
-    400px 800px #cfd9ff,
-    900px 200px #fff,
-    1300px 900px #9fb3ff,
-    1600px 1200px #fff,
-    200px 1500px #cfd9ff,
-    40px 1100px #fff,
-    80px 400px #fff,
-    700px 1100px #fff,
-    1800px 400px #fff,
-    2400px 600px #9fb3ff;
-  animation: twinkle 6s infinite alternate;
-  opacity: 0.4;
+.stars-small {
+    box-shadow: 
+        20px 30px #fff,
+        50px 80px #fff,
+        120px 150px #fff,
+        200px 220px #fff,
+        300px 350px #fff,
+        400px 420px #fff,
+        500px 550px #fff,
+        600px 620px #fff,
+        700px 750px #fff;
+    animation: starScrol 50s linear infinite;
 }
 
-/* MID STARS */
-.stars-mid {
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  box-shadow:
-    150px 500px #fff,
-    600px 900px #fff,
-    1000px 300px #cfd9ff,
-    1400px 700px #fff,
-    1900px 1100px #9fb3ff,
-    2300px 200px #fff,
-    10px 1300px #fff,
-    800px 1500px #cfd9ff,
-  animation: twinkle 4s infinite alternate;
-  opacity: 0.7;
+.stars-medium {
+    width: 2px;
+    height: 2px;
+    box-shadow: 
+        100px 120px #cfd9ff,
+        250px 300px #cfd9ff,
+        400px 450px #cfd9ff,
+        550px 600px #cfd9ff,
+        700px 750px #cfd9ff;
+    animation: starScrol 100s linear infinite;
 }
 
-/* FRONT STARS */
-.stars-front {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  box-shadow:
-    20px 100px #fff,
-    300px 400px #fff,
-    800px 600px #fff,
-    1200px 100px #fff,
-    1700px 500px #cfd9ff,
-    2100px 900px #fff;
-  animation: twinkle 3s infinite alternate;
-  opacity: 1;
+.stars-big{
+    width: 3px;
+    height: 3px;
+    box-shadow: 
+        150px 200px #9fb3ff,
+        350px 400px #9fb3ff,
+        500px 550px #9fb3ff,
+        650px 700px #9fb3ff;
+    animation: starScrol 150s linear infinite;
 }
 
-@keyframes twinkle {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.stars::after{
+    content: "";
+    position: absolute;
+    width: inherit;
+    height: inherit;
+    top: 2000px;
+    box-shadow: inherit;
+}
+
+@keyframes starScrol {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-2000px);
+    }
 }
 
 .shooting-stars {
@@ -226,7 +208,7 @@
 
 /* Fake editor */
 .editor-frame {
-    background: #1a1a1a;
+    background: #101010;
     border-radius: 16px;
     border: 1px solid #2a2a2a;
     box-shadow: 
@@ -243,6 +225,8 @@
     padding: 0 12px;
     align-items: center;
     border-bottom: 1px solid #333;
+    background: #333;
+    border-radius: 16px 16px 0 0;
 }
 
 .dot {

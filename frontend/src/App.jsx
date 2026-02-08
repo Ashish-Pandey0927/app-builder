@@ -1,33 +1,23 @@
 import { useState } from "react";
 import Hero from "./pages/Hero";
-import PromptPage from "./pages/PromptPage";
+// import PromptPage from "./pages/PromptPage";
 import Editor from "./pages/editorPage";
+import HowItWorks from "./pages/HowItWorks";
 
 function App() {
   const [schema, setSchema] = useState(null);
-  const [view, setView] = useState("landing"); 
+
   // "landing" | "prompt" | "editor"
-
-  if (view === "landing") {
-    return <Hero onStart={() => setView("prompt")} />;
-  }
-
-  if (view === "prompt") {
+  if (!schema) {
     return (
-      <PromptPage
-        onGenerate={(generatedSchema) => {
-          setSchema(generatedSchema);
-          setView("editor");
-        }}
-      />
+      <>
+        <Hero onStart={setSchema} />
+        <HowItWorks />
+      </>
     );
   }
 
-  if (view === "editor") {
-    return <Editor initialSchema={schema} />;
-  }
-
-  return null;
+  return <Editor initialSchema={schema} />;
 }
 
 export default App;
