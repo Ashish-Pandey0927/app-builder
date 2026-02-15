@@ -1,46 +1,19 @@
-import { useEffect } from "react";
+// import { useEffect } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import "../style/hero.css";
 import FakeEditorPreview from "./FakeEditorPreview";
 import HeroPrompt from "./HeroPrompt";
 
 export default function Hero({ onStart }) {
-  useEffect(() => {
-    const container = document.querySelector(".shooting-stars");
-    if (!container) return;
+  const navigate = useNavigate();
 
-    function createShootingStar() {
-      const star = document.createElement("div");
-      star.className = "shooting-star";
-
-      // Start off-screen (top-right area)
-      star.style.top = Math.random() * window.innerHeight * 0.4 + "px";
-      star.style.left = window.innerWidth + Math.random() * 200 + "px";
-
-      container.appendChild(star);
-
-      // Cleanup
-      setTimeout(() => {
-        star.remove();
-      }, 1500);
-    }
-
-    const interval = setInterval(() => {
-      // Not spammy, feels natural
-      if (Math.random() > 0.65) {
-        createShootingStar();
-      }
-    }, 1400);
-
-    return () => clearInterval(interval);
-  }, []);
-
+  function handleGenerate(schema) {
+    onStart(schema);
+    navigate("/editor");
+  }
+  
   return (
     <section className="hero">
-      <div className="stars stars-small"></div>
-      <div className="stars stars-medium"></div>
-      <div className="stars stars-big"></div>
-      <div className="shooting-stars"></div>
-
       <div className="hero-left">
         <h1>
           Build real mobile apps <span>visually</span>
@@ -52,7 +25,7 @@ export default function Hero({ onStart }) {
           No code. No hassle.
         </p>
 
-        <HeroPrompt onGenerate={onStart} />
+        <HeroPrompt onGenerate={handleGenerate} />
         <p className="hero-cta-note">No sign-up required. Free beta</p>
       </div>
 

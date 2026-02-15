@@ -4,7 +4,7 @@
     grid-template-columns: 1.1fr 1fr;
     align-items: center;
     padding: 80px;
-    background: radial-gradient(ellipse at bottom, #0d1020 0%, #05060a 70%);
+    /* background: radial-gradient(ellipse at bottom, #0d1020 0%, #05060a 70%); */
     overflow: hidden;
     color: #ffffff;
     position: relative;

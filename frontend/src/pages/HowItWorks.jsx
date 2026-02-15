@@ -1,41 +1,58 @@
-import React from 'react'
+import React from "react";
 import "../style/HowItWorks.css";
 
-const HowItWorks = () => {
+const steps = [
+  {
+    number: "01",
+    title: "Enter your idea",
+    description:
+      "Describe your app in simple terms. The more details you give, the smarter the output becomes.",
+    gif: "/gif/step1.gif",
+  },
+  {
+    number: "02",
+    title: "AI generates your app",
+    description:
+      "Our AI instantly creates a structured mobile UI with real screens and components.",
+    gif: "/gif/step2.gif",
+  },
+  {
+    number: "03",
+    title: "Edit visually",
+    description:
+      "Customize layout, spacing, themes and components using our visual editor.",
+    gif: "/gif/step3.gif",
+  },
+  {
+    number: "04",
+    title: "Export & launch",
+    description:
+      "Export production-ready HTML or PWA and deploy your app instantly.",
+    gif: "/gifs/step4.gif",
+  },
+];
+
+export default function HowItWorks() {
   return (
-    <section className="how-it-works">
-      <h2>How It Works</h2>
-      <h4>From idea to app in minutes</h4>
+    <section className="how-wrapper">
+      {steps.map((step, index) => (
+        <div
+          key={step.number}
+          className={`how-section ${
+            index % 2 !== 0 ? "reverse" : ""
+          }`}
+        >
+          <div className="how-text">
+            <span className="step-number">{step.number}</span>
+            <h2>{step.title}</h2>
+            <p>{step.description}</p>
+          </div>
 
-      <div className="steps">
-        <div className="step">
-            <span className='step-number'>01</span>
-            <h3>Enter your idea</h3>
-            <p>Describe your app in simple terms. The more details, the better!</p>
-            <img src="/promptpage.jfif" alt="" />
+          <div className="how-media">
+            <img src={step.gif} alt={step.title} />
+          </div>
         </div>
-
-        <div className="step">
-            <span className='step-number'>02</span>
-            <h3>AI generates your app</h3>
-            <p>Our AI instantly creates a fully visual app design based on your description.</p>
-        </div>
-
-        <div className="step">
-            <span className='step-number'>03</span>
-            <h3>Edit visually</h3>
-            <p>Use our intuitive editor to customize your app's look and feel with drag-and-drop.</p>
-            <img src="/editor.jfif" alt="" />
-        </div>
-
-        <div className="step">
-            <span className='step-number'>04</span>
-            <h3>Export & launch</h3>
-            <p>Export your app's code and assets, ready to be published on app stores.</p>
-        </div>
-      </div>
+      ))}
     </section>
-  )
+  );
 }
-
-export default HowItWorks

@@ -11,17 +11,17 @@ import { style } from "../style/style";
 import JSZip from "jszip";
 import { themes } from "../themes/themes";
 import { devices } from "../devices/devices";
-
+import QRCode from "qrcode";
 
 const editorPage = ({ initialSchema }) => {
   const [schema, setSchema] = useState(() => ({
-  ...initialSchema,
-  screens: initialSchema.screens.map((s) => ({
-    ...s,
-    style: s.style || { backgroundColor: "#ffffff" },
-  })),
-  theme: initialSchema.theme || themes.minimal,
-}));
+    ...initialSchema,
+    screens: initialSchema.screens.map((s) => ({
+      ...s,
+      style: s.style || { backgroundColor: "#ffffff" },
+    })),
+    theme: initialSchema.theme || themes.minimal,
+  }));
 
   if (!schema || !schema.screens || !Array.isArray(schema.screens)) {
     return <div>Invalid schema loaded</div>;
@@ -79,6 +79,8 @@ const editorPage = ({ initialSchema }) => {
   }, [selectedComponentId]);
 
   const [openMenu, setOpenMenu] = useState(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   function updateComponent(updatedComponent) {
     const updateInTree = (components) => {
@@ -886,6 +888,50 @@ self.addEventListener("fetch", e => {
     }
   }
 
+  function ExportItem({ label, onClick }) {
+    return (
+      <div
+        onClick={onClick}
+        style={{
+          padding: "8px 10px",
+          fontSize: 13,
+          color: "#ddd",
+          cursor: "pointer",
+          borderRadius: 6,
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)")
+        }
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+        }}
+      >
+        {label}
+      </div>
+    );
+  }
+
+  async function handleExport(type) {
+    setExportMenuOpen(false);
+    setIsExporting(true);
+
+    try {
+      if (type === "zip") {
+        await exportToZip();
+      }
+      if (type === "html") {
+        await exportToHTML();
+      }
+      if (type === "pwa") {
+        await exportPublishHTML();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   function MenuItem({ label, onClick, danger, subMenu }) {
     return (
       <div style={{ padding: "8px 14px" }}>
@@ -896,11 +942,11 @@ self.addEventListener("fetch", e => {
             cursor: "pointer",
             color: danger ? "#ff5555" : "#ddd",
           }}
-          >
+        >
           {label}
         </div>
         {subMenu && <div style={{ marginTop: 6 }}>{subMenu}</div>}
-        </div>
+      </div>
     );
   }
   useEffect(() => {
@@ -1010,6 +1056,55 @@ self.addEventListener("fetch", e => {
     };
   }, []);
 
+
+  const overlayStyle = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 99999,
+  };
+
+  const cardStyle = {
+    background: "#1e1e1e",
+    padding: 24,
+    borderRadius: 8,
+    textAlign: "center",
+    color: "#ddd",
+    width: 300,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+  };
+
+  const spinnerStyle = {
+    width: 40,
+    height: 40,
+    border: "4px solid #333",
+    borderTop: "4px solid #6200ee",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+    margin: "0 auto 16px",
+  };
+
+  const [previewQR, setPreviewQR] = useState(null);
+
+  async function generateQR() {
+    try {
+      // const ip = "192.168.1.2";
+
+      const encoded = encodeURIComponent(JSON.stringify(schema));
+
+      const url = `http://192.168.1.2:5173/preview?data=${encoded}`;
+
+      const qr = await QRCode.toDataURL(url);
+
+      setPreviewQR(qr);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   return (
     <>
       <div
@@ -1108,9 +1203,9 @@ self.addEventListener("fetch", e => {
                           <select
                             value={device.name}
                             onChange={(e) => {
-                              const selectedDevice = Object.values(devices).find(
-                                (d) => d.name === e.target.value,
-                              );
+                              const selectedDevice = Object.values(
+                                devices,
+                              ).find((d) => d.name === e.target.value);
                               if (selectedDevice) {
                                 setDevice(selectedDevice);
                                 setOpenMenu(null);
@@ -1163,19 +1258,63 @@ self.addEventListener("fetch", e => {
           </button>
 
           {mode === "publish" && (
-            <button
-              onClick={exportPublishHTML}
-              style={{
-                background: style.colors.primary,
-                color: "#fff",
-                border: "none",
-                padding: "6px 12px",
-                borderRadius: 6,
-                cursor: "pointer",
-              }}
-            >
-              Export HTML
-            </button>
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExportMenuOpen(!exportMenuOpen);
+                }}
+                style={{
+                  background: style.colors.primary,
+                  color: "#fff",
+                  border: "none",
+                  padding: "6px 14px",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+              >
+                Export
+              </button>
+
+              {exportMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    position: "absolute",
+                    top: 36,
+                    right: 0,
+                    background: "#1e1e1e",
+                    border: "1px solid #333",
+                    borderRadius: 8,
+                    minWidth: 200,
+                    padding: 8,
+                    zIndex: 9999,
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  <ExportItem 
+                    label="Preview on Phone (QR)"
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      generateQR();
+                    }}
+                  />
+                  <ExportItem
+                    label="Download ZIP"
+                    onClick={() => handleExport("zip")}
+                  />
+                  <ExportItem
+                    label="Export HTML"
+                    onClick={() => handleExport("html")}
+                  />
+                  <ExportItem
+                    label="Export PWA"
+                    onClick={() => handleExport("pwa")}
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}>
@@ -1398,7 +1537,7 @@ self.addEventListener("fetch", e => {
               >
                 <div
                   style={{
-                    height:28,
+                    height: 28,
                     background: device.platform === "ios" ? "#000" : "#121212",
                     color: "#fff",
                     display: "flex",
@@ -1407,29 +1546,32 @@ self.addEventListener("fetch", e => {
                     padding: "0 12px",
                     fontSize: 12,
                     overflow: "hidden",
-                  }}>
+                  }}
+                >
                   <span>10:10</span>
-                  <span><MdOutlineNetworkCell /> <IoBatteryHalf /></span>
+                  <span>
+                    <MdOutlineNetworkCell /> <IoBatteryHalf />
+                  </span>
                 </div>
                 {/* <div> */}
-                  {mode === "publish" ? (
-                    <PublishedRenderer
-                      schema={schema}
-                      screenId={currentScreenId}
-                      onNavigate={setCurrentScreenId}
-                    />
-                  ) : (
-                    <AppRenderer
-                      schema={schema}
-                      currentScreenId={currentScreenId}
-                      onNavigate={setCurrentScreenId}
-                      selectedComponentId={selectedComponentId}
-                      onSelectComponent={setSelectedComponentId}
-                      onReorderComponent={reorderComponent}
-                      onMoveIntoContainer={moveComponentIntoContainer}
-                      mode={mode}
-                    />
-                  )}
+                {mode === "publish" ? (
+                  <PublishedRenderer
+                    schema={schema}
+                    screenId={currentScreenId}
+                    onNavigate={setCurrentScreenId}
+                  />
+                ) : (
+                  <AppRenderer
+                    schema={schema}
+                    currentScreenId={currentScreenId}
+                    onNavigate={setCurrentScreenId}
+                    selectedComponentId={selectedComponentId}
+                    onSelectComponent={setSelectedComponentId}
+                    onReorderComponent={reorderComponent}
+                    onMoveIntoContainer={moveComponentIntoContainer}
+                    mode={mode}
+                  />
+                )}
                 {/* </div> */}
               </div>
             </div>
@@ -1437,7 +1579,6 @@ self.addEventListener("fetch", e => {
         </div>
 
         {/* Property Panel */}
-        
 
         {mode !== "publish" && (
           <div
@@ -1582,6 +1723,26 @@ self.addEventListener("fetch", e => {
               );
             },
           )}
+        </div>
+      )}
+      {isExporting && (
+        <div style={ overlayStyle }>
+          <div style={cardStyle}>
+            <div style={spinnerStyle}></div>
+              <h3>Preparing your export...</h3>
+              <p>Bundling assets & generating files</p>
+          </div>
+        </div>
+      )}
+
+      {previewQR && (
+        <div style={overlayStyle}>
+          <div style={cardStyle}>
+            <h3>Scan to Preview</h3>
+            <img src={previewQR} width={200} />
+            <p>Open on your mobile device</p>
+            <button onClick={() => setPreviewQR(null)}>Close</button>
+          </div>
         </div>
       )}
     </>
